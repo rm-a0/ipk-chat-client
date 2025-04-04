@@ -1,6 +1,8 @@
 # Ignore build and runtime files
 bin/
 obj/
+build/
+ipk25chat-client
 
 # Ignore IDE-specific files
 .vs/
