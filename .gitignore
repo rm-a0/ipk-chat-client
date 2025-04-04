@@ -3,6 +3,7 @@ bin/
 obj/
 build/
 ipk25chat-client
+ipk25chat-client.pdb
 
 # Ignore IDE-specific files
 .vs/

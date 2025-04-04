@@ -2,7 +2,7 @@
 PROJECT_NAME = ipk25chat-client
 CS_PROJ = ipk25chat-client
 SRC_DIR = src
-OUTPUT_DIR = build
+OUTPUT_DIR = .
 CONFIGURATION = Release
 TARGET_RUNTIME = linux-x64
 
@@ -21,12 +21,10 @@ publish:
 		/p:EnableCompressionInSingleFile=true \
 		/p:IncludeNativeLibrariesForSelfExtract=true
 	@echo "Executable created at $(OUTPUT_DIR)/$(PROJECT_NAME)"
-	@echo "Moving executable to root directory"
-	mv "$(OUTPUT_DIR)/$(PROJECT_NAME)" "./$(PROJECT_NAME)"
 
 clean:
 	@echo "Cleaning build artifacts..."
-	rm -rf $(PROJECT_NAME) $(OUTPUT_DIR) $(SRC_DIR)/bin $(SRC_DIR)/obj
+	rm -rf $(PROJECT_NAME) $(SRC_DIR)/bin $(SRC_DIR)/obj
 
 run: publish
 	@echo "Running application..."
