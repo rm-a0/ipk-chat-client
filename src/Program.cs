@@ -1,21 +1,18 @@
-namespace IPK25Chat;
-
 class Program
 {
-    static void Main(string[] args)
+    static async Task Main(string[] args)
     {
         try
         {
             var parser = new ArgumentParser();
             parser.Parse(args);
 
-            Console.WriteLine($"Protocol: {parser.Protocol}, Server: {parser.Server}, Port: {parser.Port}, " +
-                              $"Timeout: {parser.UdpTimeout}, Retries: {parser.UdpRetries}, Verbose: {parser.Verbose}");
+            Debugger.Enable(parser.Debug);
+            Debugger.Log("Debugger enabled");
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"ERROR: {ex.Message}");
-            Environment.Exit(1);
+            Console.Error.WriteLine($"Parsing arguments failed: {ex.Message}");
         }
     }
 }
