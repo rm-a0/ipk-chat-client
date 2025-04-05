@@ -8,7 +8,6 @@ public class TcpChatClient : ChatClient
     private TcpClient? _client;
     private NetworkStream? _stream;
     private bool _isConnected;
-    private string _displayName = "User";
 
     public TcpChatClient(string server, int port)
     {
@@ -23,5 +22,15 @@ public class TcpChatClient : ChatClient
         _isConnected = true;
         Debugger.Log("Connected to TCP server");
         //_ = Task.Run(ReceiveMessageAsync);
+    }
+
+    public Task DisconnectAsync()
+    {
+        throw new NotImplementedException();
+    }
+
+    public Task SendMessageAsync()
+    {
+        throw new NotImplementedException();
     }
 }
