@@ -1,4 +1,6 @@
 using System;
+using System.Net;
+using System.Net.Sockets;
 
 public class ArgumentParser
 {
@@ -24,7 +26,12 @@ public class ArgumentParser
 
                 case "-s":
                 case "--server":
-                    Server = GetNextArg(args, ref i);
+                    string? serverIp = HostnameToIp(GetNextArg(args, ref i));
+                    if (string.IsNullOrEmpty(serverIp))
+                    {
+                        throw new ArgumentException("Invalid IP address or hostname");
+                    }
+                    Server = serverIp;
                     break;
 
                 case "-p":
@@ -83,5 +90,24 @@ public class ArgumentParser
         Console.WriteLine("  -r, --retries <count>     UDP max retransmissions (default: 3)");
         Console.WriteLine("  -dbg, --debug             Enable debug logging");
         Console.WriteLine("  -h, --help                Show this help");
+    }
+
+    private string? HostnameToIp(string hostname)
+    {
+        if (IPAddress.TryParse(hostname, out IPAddress ip) && ip.AddressFamily == AddressFamily.InterNetwork)
+        {
+            return hostname;
+        }
+
+        IPAddress[] addresses = Dns.GetHostAddresses(hostname);
+        
+        foreach (IPAddress address in addresses)
+        {
+            if (address.AddressFamily == AddressFamily.InterNetwork)
+            {
+                return address.ToString();
+            }
+        }
+        return null;
     }
 }

@@ -1,5 +1,3 @@
-using System.Net.Sockets;
-
 class Program
 {
     static async Task Main(string[] args)
@@ -12,6 +10,7 @@ class Program
 
             Debugger.Enable(parser.Debug);
             Debugger.Log("Debugger enabled");
+            Debugger.Log($"Server IP: {parser.Server}");
 
             client = parser.Protocol switch
             {
