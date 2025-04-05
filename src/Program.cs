@@ -5,6 +5,7 @@ class Program
     static async Task Main(string[] args)
     {
         var parser = new ArgumentParser();
+        ChatClient? client = null;
         try
         {
             parser.Parse(args);
@@ -12,22 +13,24 @@ class Program
             Debugger.Enable(parser.Debug);
             Debugger.Log("Debugger enabled");
 
-            ChatClient? client = parser.Protocol switch
+            client = parser.Protocol switch
             {
                 "tcp" => new TcpChatClient(parser.Server, parser.Port),
                 "udp" => new UdpChatClient(parser.Server, parser.Port),
                 _ => throw new InvalidOperationException("Unsupported protocol")
             };
             await client.ConnectAsync();
-        }
-        catch (ArgumentException ex)
-        {
-            Console.Error.WriteLine($"Argument error: {ex.Message}");
-            Environment.Exit(1);
+
+            string? input;
+            while ((input = Console.ReadLine()) != null)
+            {
+                Debugger.Log($"User input from console: {input}");
+                await client.SendMessageAsync(input);
+            }
         }
         catch (Exception ex)
         {
-            Console.Error.WriteLine($"Unexpected error: {ex.Message}");
+            Console.Error.WriteLine($"ERROR: {ex.Message}");
             Environment.Exit(1);
         }
     }

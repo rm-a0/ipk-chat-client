@@ -20,12 +20,12 @@ public class UdpChatClient : ChatClient
         throw new NotImplementedException();
     }
 
-    public Task DisconnectAsync()
+    public async Task DisconnectAsync()
     {
         throw new NotImplementedException();
     }
 
-    public Task SendMessageAsync()
+    public async Task SendMessageAsync(string message)
     {
         throw new NotImplementedException();
     }

@@ -7,7 +7,7 @@ public class ArgumentParser
     public int Port { get; private set; } = 4567;
     public int UdpTimeout { get; private set; } = 250;
     public int UdpRetries { get; private set; } = 3;
-    public bool Debug { get; private set; }
+    public bool Debug { get; private set; } = false;
 
     public void Parse(string[] args)
     {
