@@ -1,4 +1,5 @@
 using System.Net.Sockets;
+using System.Runtime.CompilerServices;
 
 public class TcpChatClient : ChatClient
 {
@@ -21,5 +22,6 @@ public class TcpChatClient : ChatClient
         await _client.ConnectAsync(_server, _port);
         _isConnected = true;
         Debugger.Log("Connected to TCP server");
+        //_ = Task.Run(ReceiveMessageAsync);
     }
 }

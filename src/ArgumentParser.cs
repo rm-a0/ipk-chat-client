@@ -81,7 +81,7 @@ public class ArgumentParser
         Console.WriteLine("  -p, --port <number>       Server port (default: 4567)");
         Console.WriteLine("  -d, --timeout <ms>        UDP confirmation timeout (default: 250)");
         Console.WriteLine("  -r, --retries <count>     UDP max retransmissions (default: 3)");
-        Console.WriteLine("  -v, --verbose             Enable verbose logging");
+        Console.WriteLine("  -dbg, --debug             Enable debug logging");
         Console.WriteLine("  -h, --help                Show this help");
     }
 }
