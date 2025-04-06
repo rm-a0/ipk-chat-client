@@ -23,7 +23,6 @@ public class TcpChatClient : ChatClient
         _stream = _client.GetStream();
         _isConnected = true;
         Debugger.Log("Connected to TCP server");
-        _ = Task.Run(ReceiveMessageAsync);
     }
 
     private async Task ReceiveMessageAsync()

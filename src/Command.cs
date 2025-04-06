@@ -2,7 +2,13 @@ using System.Text.RegularExpressions;
 
 public enum CommandType
 {
-    Auth, Join, Rename, Msg, Bye, Help, Unknown
+    Auth,
+    Join,
+    Rename,
+    Msg,
+    Bye,
+    Help,
+    Unknown
 }
 
 public class Command

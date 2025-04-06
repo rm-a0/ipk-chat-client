@@ -5,6 +5,7 @@ class Program
         var parser = new ArgumentParser();
         var inputParser = new InputParser();
         ChatClient? client = null;
+        ChatStateMachine? stateMachine = null;
 
         try
         {
@@ -20,6 +21,7 @@ class Program
                 "udp" => new UdpChatClient(parser.Server, parser.Port),
                 _ => throw new InvalidOperationException("Unsupported protocol")
             };
+            stateMachine = new ChatStateMachine(client);
             await client.ConnectAsync();
 
             string? input;
@@ -31,7 +33,7 @@ class Program
                     Command command = inputParser.Parse(input);
                     if (!command.IsLocal && command.Type != CommandType.Unknown)
                     {
-                        await client.SendMessageAsync(command);
+                        await stateMachine.HandleCommandAsync(command);
                     }
                     else if (command.Type == CommandType.Help)
                     {
