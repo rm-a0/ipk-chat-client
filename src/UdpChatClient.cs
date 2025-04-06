@@ -24,7 +24,7 @@ public class UdpChatClient : ChatClient
         throw new NotImplementedException();
     }
 
-    public async Task SendMessageAsync(string message)
+    public async Task SendMessageAsync(Command command)
     {
         throw new NotImplementedException();
     }

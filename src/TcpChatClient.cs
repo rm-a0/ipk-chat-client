@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using System.Net.Sockets;
 using System.Text;
 
@@ -51,7 +52,7 @@ public class TcpChatClient : ChatClient
             }
             catch (Exception ex)
             {
-                throw new InvalidOperationException("Failed to receive message from server");
+                throw new InvalidOperationException($"Failed to receive message from server: {ex.Message}");
             }
         }
     }
@@ -61,23 +62,37 @@ public class TcpChatClient : ChatClient
         throw new NotImplementedException();
     }
 
-    public async Task SendMessageAsync(string message)
+    public async Task SendMessageAsync(Command command)
     {
         if (!_isConnected || _stream == null)
         {
             throw new InvalidOperationException("Not connected to the server");
         }
-        
-        string? formattedMessage = "";
-        if (string.IsNullOrEmpty(formattedMessage))
+
+        if (command.IsLocal || command.Type == CommandType.Unknown)
         {
-            Debugger.Log("String is null or empty");
             return;
         }
 
-        Debugger.Log($"Sending: '{formattedMessage}'");
+        string formattedMessage = FormatCommand(command);
+        Debugger.Log($"Sending: {formattedMessage}");
         byte[] data = Encoding.ASCII.GetBytes(formattedMessage + "\r\n");
         await _stream.WriteAsync(data, 0, data.Length);
         
+    }
+
+    private string FormatCommand(Command command)
+    {
+        return command.Type switch
+        {
+            CommandType.Auth => $"AUTH {command.Username} AS {command.DisplayName} USING {command.Secret}",
+            CommandType.Join => $"JOIN {command.Channel} AS {command.DisplayName}",
+            CommandType.Msg => $"MSG FROM {command.DisplayName} IS {command.Content}",
+            CommandType.Bye => "BYE",
+            CommandType.Rename => throw new InvalidOperationException("Rename is a local command and should not be formatted."),
+            CommandType.Help => throw new InvalidOperationException("Help is a local command and should not be formatted."),
+            CommandType.Unknown => throw new InvalidOperationException("Unknown command should not be formatted."),
+            _ => throw new InvalidOperationException("Unexpected command type.") // Catch-all for future enum values
+        };
     }
 }

@@ -2,5 +2,5 @@ public interface ChatClient
 {   
     Task ConnectAsync();
     Task DisconnectAsync();
-    Task SendMessageAsync(string message);
+    Task SendMessageAsync(Command command);
 }
