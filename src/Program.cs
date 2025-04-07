@@ -9,6 +9,7 @@ class Program
         ChatClient? client = null;
         ChatStateMachine? stateMachine = null;
         Task? listenerTask = null;
+        CancellationTokenSource cancellationTokenSource = new CancellationTokenSource();
 
         try
         {
@@ -21,7 +22,7 @@ class Program
             client = ChatClientFactory.Create(parser.Protocol, parser.Server, parser.Port);
             await client.ConnectAsync();
 
-            stateMachine = new ChatStateMachine(client);
+            stateMachine = new ChatStateMachine(client, cancellationTokenSource.Token);
 
             // Run server listener asynchronously
             listenerTask = Task.Run(async () =>
@@ -38,12 +39,19 @@ class Program
             });
 
             string? input;
-            while ((input = Console.ReadLine()) != null)
+            bool shouldExit = false;
+            while (!shouldExit && (input = Console.ReadLine()) != null)
             {
                 Debugger.Log($"User input from console: {input}");
                 try
                 {
                     Command command = inputParser.Parse(input);
+                    if (command.Type == CommandType.Bye)
+                    {
+                        cancellationTokenSource.Cancel();
+                        await client.DisconnectAsync();
+                        shouldExit = true;
+                    }
                     if (!command.IsLocal && command.Type != CommandType.Unknown)
                     {
                         await stateMachine.HandleCommandAsync(command);

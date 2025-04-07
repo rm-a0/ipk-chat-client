@@ -1,6 +1,7 @@
 using System;
 using System.Data;
 using System.Reflection.Metadata.Ecma335;
+using System.Security.Principal;
 
 public enum ClientState
 {
@@ -15,17 +16,18 @@ public class ChatStateMachine
 {
     private ClientState _state = ClientState.Start;
     private readonly ChatClient _client;
-    private CancellationTokenSource _cancellationTokenSource;
+    private CancellationToken _token;
 
-    public ChatStateMachine(ChatClient client)
+    public ChatStateMachine(ChatClient client, CancellationToken token)
     {
         _client = client;
-        _cancellationTokenSource = new CancellationTokenSource();
+        _token = token;
     }
 
     public async Task EnableServerListenerAsync() 
     {
-        await _client.ListenToServerAsync(this, _cancellationTokenSource.Token);
+        await _client.ListenToServerAsync(this, _token);
+        Debugger.Log("Listening to server finished");
     }
 
     public async Task HandleCommandAsync(Command command)

@@ -62,7 +62,20 @@ public class TcpChatClient : ChatClient
 
     public async Task DisconnectAsync()
     {
-        throw new NotImplementedException();
+        if (_client != null && _client.Connected)
+        {
+            _isConnected = false;
+
+            if (_stream != null)
+            {
+                await _stream.FlushAsync();
+                _stream.Close();
+                Debugger.Log("NetworkStream closed.");
+            }
+
+            _client.Close();
+            Debugger.Log("TcpClient closed.");
+        }
     }
 
     public async Task SendMessageAsync(Command command)
