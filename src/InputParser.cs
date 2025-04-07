@@ -1,3 +1,5 @@
+using System.Diagnostics.Contracts;
+
 public class InputParser
 {
     private string _displayName;
@@ -43,7 +45,8 @@ public class InputParser
                     return new Command(CommandType.Rename, displayName: parts[1], isLocal: true);
 
                 case "/help":
-                    return new Command(CommandType.Help, isLocal: true);
+                    PrintHelp();
+                    return new Command(CommandType.Help);
 
                 case "/bye":
                     return new Command(CommandType.Bye);
@@ -54,6 +57,17 @@ public class InputParser
         }
 
         return new Command(CommandType.Msg, displayName: _displayName, content: input);
+    }
+
+    private void PrintHelp()
+    {
+        Console.WriteLine("Commands:");
+        Console.WriteLine("  /auth <username> <secret> <displayname>  Send 'AUTH' message to server, locally set 'displayName'");
+        Console.WriteLine("  /join <channel>                          Send 'JOIN' message to server");
+        Console.WriteLine("  /rename <displayName>                    Locally change display name");
+        Console.WriteLine("  /bye                                     Disconnect from the server");
+        Console.WriteLine("  <message>                                Send 'MSG' message to the server with 'message' as content");
+        Console.WriteLine("  /help                                    Display this message");
     }
 
     public string GetDisplayName() => _displayName;

@@ -1,3 +1,5 @@
+using System.Diagnostics;
+
 class Program
 {
     static async Task Main(string[] args)
@@ -6,6 +8,7 @@ class Program
         var inputParser = new InputParser();
         ChatClient? client = null;
         ChatStateMachine? stateMachine = null;
+        Task? listenerTask = null;
 
         try
         {
@@ -15,14 +18,24 @@ class Program
             Debugger.Log("Debugger enabled");
             Debugger.Log($"Server IP: {parser.Server}");
 
-            client = parser.Protocol switch
-            {
-                "tcp" => new TcpChatClient(parser.Server, parser.Port),
-                "udp" => new UdpChatClient(parser.Server, parser.Port),
-                _ => throw new InvalidOperationException("Unsupported protocol")
-            };
-            stateMachine = new ChatStateMachine(client);
+            client = ChatClientFactory.Create(parser.Protocol, parser.Server, parser.Port);
             await client.ConnectAsync();
+
+            stateMachine = new ChatStateMachine(client);
+
+            // Run server listener asynchronously
+            listenerTask = Task.Run(async () =>
+            {
+                try
+                {
+                    await client.ListenToServerAsync(stateMachine);
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"ERROR: {ex.Message}");
+                    
+                }
+            });
 
             string? input;
             while ((input = Console.ReadLine()) != null)
@@ -35,16 +48,6 @@ class Program
                     {
                         await stateMachine.HandleCommandAsync(command);
                     }
-                    else if (command.Type == CommandType.Help)
-                    {
-                        Console.WriteLine("Commands:");
-                        Console.WriteLine("  /auth <username> <secret> <displayname>  Send 'AUTH' message to server, locally set 'displayName'");
-                        Console.WriteLine("  /join <channel>                          Send 'JOIN' message to server");
-                        Console.WriteLine("  /rename <displayName>                    Locally change display name");
-                        Console.WriteLine("  /bye                                     Disconnect from the server");
-                        Console.WriteLine("  <message>                                Send 'MSG' message to the server with 'message' as content");
-                        Console.WriteLine("  /help                                    Display this message");
-                    }
                 }
                 catch (ArgumentException ex)
                 {
@@ -56,6 +59,19 @@ class Program
         {
             Console.WriteLine($"ERROR: {ex.Message}");
             Environment.Exit(1);
+        }
+        finally {
+            if (client != null)
+            {
+                await client.DisconnectAsync();
+            }
+
+            if (listenerTask != null)
+            {
+                await listenerTask;
+            }
+
+            Debugger.Log("Clean exit");
         }
     }
 }

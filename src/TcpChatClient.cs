@@ -94,4 +94,9 @@ public class TcpChatClient : ChatClient
             _ => throw new InvalidOperationException("Unexpected command type.") // Catch-all for future enum values
         };
     }
+
+    public async Task ListenToServerAsync(ChatStateMachine stateMachine)
+    {
+        throw new NotImplementedException();
+    }
 }
