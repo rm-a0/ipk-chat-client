@@ -25,35 +25,39 @@ public class TcpChatClient : ChatClient
         Debugger.Log("Connected to TCP server");
     }
 
-    private async Task ReceiveMessageAsync()
+    public async Task ListenToServerAsync(ChatStateMachine stateMachine, CancellationToken token)
     {
-        if (_stream == null)
-        {
-            Debugger.Log("Stream is null");
-            return;
-        }
+       byte[] buffer = new byte[1024];
 
-        byte[] buffer = new byte[1024];
-        while (_isConnected)
+        while (_isConnected && !token.IsCancellationRequested)
         {
             try
             {
-                int bytesRead = await _stream.ReadAsync(buffer, 0, buffer.Length);
+                int bytesRead = await _stream.ReadAsync(buffer, 0, buffer.Length, token);
+
                 if (bytesRead == 0)
                 {
                     _isConnected = false;
-                    Debugger.Log("Server disconnected (bytesRead = 0)");
-                    throw new IOException("Server closed the connection");
+                    Debugger.Log("Server disconnected.");
+                    break;
                 }
 
-                string response = Encoding.ASCII.GetString(buffer, 0, bytesRead).TrimEnd('\r', '\n');
-                Debugger.Log($"Received: {response}");
+                string response = Encoding.ASCII.GetString(buffer, 0, bytesRead);
+                Debugger.Log($"Response received: {response}");
+                stateMachine.HandleResponse(response);
+            }
+            catch (OperationCanceledException)
+            {
+                Debugger.Log("Listening to server has been canceled.");
+                break; // Exit the loop when canceled
             }
             catch (Exception ex)
             {
-                throw new InvalidOperationException($"Failed to receive message from server: {ex.Message}");
+                // Handle any other exception (network errors, etc.)
+                Console.WriteLine($"ERROR: {ex.Message}");
+                break;
             }
-        }
+        } 
     }
 
     public async Task DisconnectAsync()
@@ -93,10 +97,5 @@ public class TcpChatClient : ChatClient
             CommandType.Unknown => throw new InvalidOperationException("Unknown command should not be formatted."),
             _ => throw new InvalidOperationException("Unexpected command type.") // Catch-all for future enum values
         };
-    }
-
-    public async Task ListenToServerAsync(ChatStateMachine stateMachine)
-    {
-        throw new NotImplementedException();
     }
 }

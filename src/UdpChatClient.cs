@@ -29,7 +29,7 @@ public class UdpChatClient : ChatClient
         throw new NotImplementedException();
     }
 
-    public async Task ListenToServerAsync(ChatStateMachine stateMachine)
+    public async Task ListenToServerAsync(ChatStateMachine stateMachine, CancellationToken token)
     {
         throw new NotImplementedException();
     }

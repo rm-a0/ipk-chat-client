@@ -15,15 +15,17 @@ public class ChatStateMachine
 {
     private ClientState _state = ClientState.Start;
     private readonly ChatClient _client;
+    private CancellationTokenSource _cancellationTokenSource;
 
     public ChatStateMachine(ChatClient client)
     {
         _client = client;
+        _cancellationTokenSource = new CancellationTokenSource();
     }
 
     public async Task EnableServerListenerAsync() 
     {
-        await _client.ListenToServerAsync(this);
+        await _client.ListenToServerAsync(this, _cancellationTokenSource.Token);
     }
 
     public async Task HandleCommandAsync(Command command)
