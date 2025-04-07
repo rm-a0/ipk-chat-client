@@ -21,6 +21,11 @@ public class ChatStateMachine
         _client = client;
     }
 
+    public async Task EnableServerListenerAsync() 
+    {
+        await _client.ListenToServerAsync(this);
+    }
+
     public async Task HandleCommandAsync(Command command)
     {
         switch (_state)

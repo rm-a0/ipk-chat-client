@@ -28,7 +28,7 @@ class Program
             {
                 try
                 {
-                    await client.ListenToServerAsync(stateMachine);
+                    await stateMachine.EnableServerListenerAsync();
                 }
                 catch (Exception ex)
                 {
