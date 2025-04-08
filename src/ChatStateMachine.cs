@@ -1,7 +1,4 @@
-using System;
-using System.Data;
-using System.Reflection.Metadata.Ecma335;
-using System.Security.Principal;
+using System.Runtime.CompilerServices;
 
 public enum ClientState
 {
@@ -14,102 +11,159 @@ public enum ClientState
 
 public class ChatStateMachine
 {
+    public event EventHandler? RequestExit;
+
     private ClientState _state = ClientState.Start;
     private readonly ChatClient _client;
-    private CancellationToken _token;
+    private readonly SemaphoreSlim _semaphore = new SemaphoreSlim(1, 1);
 
-    public ChatStateMachine(ChatClient client, CancellationToken token)
+    public ChatStateMachine(ChatClient client)
     {
         _client = client;
-        _token = token;
+        _ = Task.Run(() => EndStateListenerAsync());
     }
 
-    public async Task EnableServerListenerAsync() 
+    private async Task EndStateListenerAsync()
     {
-        await _client.ListenToServerAsync(this, _token);
-        Debugger.Log("Listening to server finished");
+        while (true)
+        {
+            await _semaphore.WaitAsync();
+            try
+            {
+                if (_state == ClientState.End)
+                {
+                    RequestExit?.Invoke(this, EventArgs.Empty);
+                    return;
+                }
+            }
+            finally
+            {
+                _semaphore.Release();
+            }
+            await Task.Delay(50);
+        } 
     }
 
     public async Task HandleCommandAsync(Command command)
     {
-        switch (_state)
+        await _semaphore.WaitAsync();
+        try
         {
-            case ClientState.Start:
-                if (command.Type == CommandType.Bye)
-                {
-                    await _client.SendMessageAsync(command);
-                    _state = ClientState.End;
-                }
-                else if (command.Type == CommandType.Auth)
-                {
-                    await _client.SendMessageAsync(command);
-                    _state = ClientState.Auth;
-                }
-                else
-                {
-                    Console.WriteLine($"ERROR: Must authenticate before sending {command.Type}");
-                    // add cancelation method
-                }
-                break;
-            case ClientState.Auth:
-                if (command.Type == CommandType.Bye)
-                {
-                    await _client.SendMessageAsync(command);
-                    _state = ClientState.End;
-                }
-                else if (command.Type == CommandType.Auth)
-                {
-                    await _client.SendMessageAsync(command);
-                    _state = ClientState.Auth;
-                }
-                // TODO: ERR
-                else
-                {
-                    Console.WriteLine("ERROR: Waiting for response from the server");
-                }
-                break;
-            case ClientState.Open:
-                if (command.Type == CommandType.Bye)
-                {
-                    await _client.SendMessageAsync(command);
-                    _state = ClientState.End;
-                }
-                else if (command.Type == CommandType.Msg)
-                {
-                    await _client.SendMessageAsync(command);
-                    _state = ClientState.Open;
-                }
-                else if (command.Type == CommandType.Join)
-                {
-                    await _client.SendMessageAsync(command);
-                    _state = ClientState.Join;
-                }
-                // TODO: ERR
-                else
-                {
-                    Console.WriteLine($"ERROR: State Open: Invalid command {command.Type}");
-                }
-                break;
-            case ClientState.Join:
-                if (command.Type == CommandType.Bye)
-                {
-                    await _client.SendMessageAsync(command);
-                    _state = ClientState.End;
-                }
-                break;
-            case ClientState.End:
-                Debugger.Log("Reached end state");
-                break;
+            bool shouldSendMessage = false;
+            switch (_state)
+            {
+                case ClientState.Start:
+                    shouldSendMessage = HandleStartState(command);
+                    break;
+                case ClientState.Auth:
+                    shouldSendMessage = HandleAuthState(command);
+                    break;
+                case ClientState.Open:
+                    shouldSendMessage = HandleOpenState(command);
+                    break;
+                case ClientState.Join:
+                    shouldSendMessage = HandleJoinState(command);
+                    break;
+                case ClientState.End:
+                    Debugger.Log("Reached end state, no commands will be sent");
+                    return;
+            }
+
+            if (shouldSendMessage && command.Type != CommandType.Unknown)
+            {
+                await _client.SendMessageAsync(command);
+                Debugger.Log($"HandleCommand: Sent command '{command.Type}'");
+            }
+        }
+        finally
+        {
+            _semaphore.Release();
         }
     }
 
     public void HandleResponse(string response)
     {
-        switch (_state)
+        _semaphore.Wait();
+        try
         {
-            case ClientState.Start:
-                break;
-
+            switch (_state)
+            {
+                case ClientState.Start:
+                    break;
+                case ClientState.Auth:
+                    break;
+                case ClientState.Open:
+                    break;
+                case ClientState.Join:
+                    break;
+                case ClientState.End:
+                    break;
+            }
         }
+        finally
+        {
+            _semaphore.Release();
+        }
+    }
+
+    private bool HandleStartState(Command command)
+    {
+        if (command.Type == CommandType.Bye)
+        {
+            _state = ClientState.End;
+            return true;
+        }
+        else if (command.Type == CommandType.Auth)
+        {
+            _state = ClientState.Auth;
+            return true;
+        }
+        Console.WriteLine($"ERROR: Must authenticate before sending {command.Type}");
+        return false;
+    }
+
+    private bool HandleAuthState(Command command)
+    {
+        if (command.Type == CommandType.Bye)
+        {
+            _state = ClientState.End;
+            return true;
+        }
+        else if (command.Type == CommandType.Auth)
+        {
+            return true;
+        }
+        Console.WriteLine("ERROR: Waiting for response from the server");
+        return false;
+    }
+
+    private bool HandleOpenState(Command command)
+    {
+        if (command.Type == CommandType.Bye)
+        {
+            _state = ClientState.End;
+            return true;
+        }
+        else if (command.Type == CommandType.Msg)
+        {
+            return true;
+        }
+        else if (command.Type == CommandType.Join)
+        {
+            _state = ClientState.Join;
+            return true;
+        }
+        Console.WriteLine($"ERROR: State Open: Invalid command {command.Type}");
+        return false;
+    }
+
+    private bool HandleJoinState(Command command)
+    {
+        if (command.Type == CommandType.Bye)
+        {
+            _state = ClientState.End;
+            return true;
+        }
+        return false;
     }
 }
