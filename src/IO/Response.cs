@@ -35,7 +35,7 @@ namespace Ipk25Chat.IO
                 ResponseType.Err => $"ERROR FROM {DisplayName}: {Content}",
                 ResponseType.Bye => $"BYE FROM {DisplayName}",
                 ResponseType.Unknown => $"ERROR: Unknown response: {Content}",
-                _ => "Invalid response"
+                _ => "ERROR: Invalid response"
             };
         }
     }

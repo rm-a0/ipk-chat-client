@@ -107,6 +107,7 @@ namespace Ipk25Chat.Core
                         Debugger.Log("Reached end state, no responses should be received");
                         break;
                 }
+                Console.WriteLine(response.ToString());
             }
             finally
             {
@@ -189,7 +190,7 @@ namespace Ipk25Chat.Core
             }
             else if (response.Type == ResponseType.ReplyNok)
             {
-                _state = ClientState.End;
+                return;
             }
             else if (response.Type == ResponseType.ReplyOk)
             {
