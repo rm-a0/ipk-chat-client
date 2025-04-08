@@ -1,19 +1,22 @@
-class Program
+namespace Ipk25Chat
 {
-    static async Task Main(string[] args)
+    class Program
     {
-        try
+        static async Task Main(string[] args)
         {
-            var parser = new ArgumentParser();
-            parser.Parse(args);
-            var chatApp = new ChatApplication(parser);
-            await chatApp.RunAsync();
-        }
-        catch (Exception ex)
-        {
-            Console.WriteLine($"ERROR: {ex.Message}");
-            Environment.Exit(1);
-        }
+            try
+            {
+                var parser = new ArgumentParser();
+                parser.Parse(args);
+                var chatApp = new ChatApplication(parser);
+                await chatApp.RunAsync();
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"ERROR: {ex.Message}");
+                Environment.Exit(1);
+            }
 
+        }
     }
 }
