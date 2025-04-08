@@ -69,5 +69,20 @@ namespace Ipk25Chat.IO
                 Content = content;
             }
         }
+
+        public string ToTcpString()
+        {
+            if (IsLocal || Type == CommandType.Unknown)
+                throw new InvalidOperationException($"{Type} is a local or unknown command and cannot be formatted for TCP.");
+
+            return Type switch
+            {
+                CommandType.Auth => $"AUTH {Username} AS {DisplayName} USING {Secret}",
+                CommandType.Join => $"JOIN {Channel} AS {DisplayName}",
+                CommandType.Msg => $"MSG FROM {DisplayName} IS {Content}",
+                CommandType.Bye => $"BYE FROM {DisplayName}",
+                _ => throw new InvalidOperationException($"Unexpected command type: {Type}")
+            };
+        }
     }
 }

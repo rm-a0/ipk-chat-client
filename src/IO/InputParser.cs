@@ -49,7 +49,7 @@ namespace Ipk25Chat.IO
                         return new Command(CommandType.Help);
 
                     case "/bye":
-                        return new Command(CommandType.Bye);
+                        return new Command(CommandType.Bye, displayName: _displayName);
 
                     default:
                         throw new ArgumentException("Unknown command");

@@ -1,3 +1,5 @@
+using System.Runtime.InteropServices;
+
 namespace Ipk25Chat.Core
 {
     public enum ClientState
@@ -54,16 +56,16 @@ namespace Ipk25Chat.Core
                 switch (_state)
                 {
                     case ClientState.Start:
-                        shouldSendMessage = HandleStartState(command);
+                        shouldSendMessage = HandleSendStartState(command);
                         break;
                     case ClientState.Auth:
-                        shouldSendMessage = HandleAuthState(command);
+                        shouldSendMessage = HandleSendAuthState(command);
                         break;
                     case ClientState.Open:
-                        shouldSendMessage = HandleOpenState(command);
+                        shouldSendMessage = HandleSendOpenState(command);
                         break;
                     case ClientState.Join:
-                        shouldSendMessage = HandleJoinState(command);
+                        shouldSendMessage = HandleSendJoinState(command);
                         break;
                     case ClientState.End:
                         Debugger.Log("Reached end state, no commands will be sent");
@@ -82,7 +84,7 @@ namespace Ipk25Chat.Core
             }
         }
 
-        public void HandleResponse(string response)
+        public void HandleResponse(Response response)
         {
             _semaphore.Wait();
             try
@@ -90,14 +92,19 @@ namespace Ipk25Chat.Core
                 switch (_state)
                 {
                     case ClientState.Start:
+                        HandleReceiveStartState(response);
                         break;
                     case ClientState.Auth:
+                        HandleReceiveAuthState(response);
                         break;
                     case ClientState.Open:
+                        HandleReceiveOpenState(response);
                         break;
                     case ClientState.Join:
+                        HandleReceiveJoinState(response);
                         break;
                     case ClientState.End:
+                        Debugger.Log("Reached end state, no responses should be received");
                         break;
                 }
             }
@@ -107,7 +114,7 @@ namespace Ipk25Chat.Core
             }
         }
 
-        private bool HandleStartState(Command command)
+        private bool HandleSendStartState(Command command)
         {
             if (command.Type == CommandType.Bye)
             {
@@ -123,7 +130,7 @@ namespace Ipk25Chat.Core
             return false;
         }
 
-        private bool HandleAuthState(Command command)
+        private bool HandleSendAuthState(Command command)
         {
             if (command.Type == CommandType.Bye)
             {
@@ -138,7 +145,7 @@ namespace Ipk25Chat.Core
             return false;
         }
 
-        private bool HandleOpenState(Command command)
+        private bool HandleSendOpenState(Command command)
         {
             if (command.Type == CommandType.Bye)
             {
@@ -158,7 +165,7 @@ namespace Ipk25Chat.Core
             return false;
         }
 
-        private bool HandleJoinState(Command command)
+        private bool HandleSendJoinState(Command command)
         {
             if (command.Type == CommandType.Bye)
             {
@@ -166,6 +173,65 @@ namespace Ipk25Chat.Core
                 return true;
             }
             return false;
+        }
+
+        private void HandleReceiveStartState(Response response)
+        {
+            _state = ClientState.End;
+        }
+
+        private void HandleReceiveAuthState(Response response)
+        {
+            if (response.Type == ResponseType.Msg)
+            {
+                _state = ClientState.End;
+                // TODO: send error
+            }
+            else if (response.Type == ResponseType.ReplyNok)
+            {
+                _state = ClientState.End;
+            }
+            else if (response.Type == ResponseType.ReplyOk)
+            {
+                _state = ClientState.Open;
+            }
+            else if (response.Type == ResponseType.Err || response.Type == ResponseType.Bye)
+            {
+                _state = ClientState.End;
+            }
+        }
+
+        private void HandleReceiveOpenState(Response response)
+        {
+            if (response.Type == ResponseType.ReplyOk || response.Type == ResponseType.ReplyNok)
+            {
+                _state = ClientState.End;
+                // TODO: send error
+            }
+            else if (response.Type == ResponseType.Err || response.Type == ResponseType.Bye)
+            {
+                _state = ClientState.End;
+            }
+            else if (response.Type == ResponseType.Msg)
+            {
+                return;
+            }
+        }
+
+        private void HandleReceiveJoinState(Response response)
+        {
+            if (response.Type == ResponseType.ReplyOk || response.Type == ResponseType.ReplyNok)
+            {
+                _state = ClientState.Open;
+            }
+            else if (response.Type == ResponseType.Msg)
+            {
+                return;
+            }
+            else if (response.Type == ResponseType.Err || response.Type == ResponseType.Bye)
+            {
+                _state = ClientState.End;
+            }
         }
     }
 }

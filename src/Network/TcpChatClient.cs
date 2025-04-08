@@ -43,8 +43,9 @@ namespace Ipk25Chat.Network
                         break;
                     }
 
-                    string response = Encoding.ASCII.GetString(buffer, 0, bytesRead);
-                    Debugger.Log($"Response received: {response}");
+                    string output = Encoding.ASCII.GetString(buffer, 0, bytesRead);
+                    Debugger.Log($"Raw ouput received: {output}");
+                    Response response = OutputParser.Parse(output);
                     stateMachine.HandleResponse(response);
                 }
                 catch (OperationCanceledException)
@@ -91,26 +92,11 @@ namespace Ipk25Chat.Network
                 return;
             }
 
-            string formattedMessage = FormatCommand(command);
+            string formattedMessage = command.ToTcpString();
             Debugger.Log($"Sending: {formattedMessage}");
             byte[] data = Encoding.ASCII.GetBytes(formattedMessage + "\r\n");
             await _stream.WriteAsync(data, 0, data.Length);
             
-        }
-
-        private string FormatCommand(Command command)
-        {
-            return command.Type switch
-            {
-                CommandType.Auth => $"AUTH {command.Username} AS {command.DisplayName} USING {command.Secret}",
-                CommandType.Join => $"JOIN {command.Channel} AS {command.DisplayName}",
-                CommandType.Msg => $"MSG FROM {command.DisplayName} IS {command.Content}",
-                CommandType.Bye => "BYE",
-                CommandType.Rename => throw new InvalidOperationException("Rename is a local command and should not be formatted."),
-                CommandType.Help => throw new InvalidOperationException("Help is a local command and should not be formatted."),
-                CommandType.Unknown => throw new InvalidOperationException("Unknown command should not be formatted."),
-                _ => throw new InvalidOperationException("Unexpected command type.") // Catch-all for future enum values
-            };
         }
     }
 }
