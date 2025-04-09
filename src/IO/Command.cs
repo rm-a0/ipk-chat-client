@@ -1,3 +1,4 @@
+using System.Text;
 using System.Text.RegularExpressions;
 
 namespace Ipk25Chat.IO
@@ -85,6 +86,61 @@ namespace Ipk25Chat.IO
                 CommandType.Bye => $"BYE FROM {DisplayName}",
                 _ => throw new InvalidOperationException($"Unexpected command type: {Type}")
             };
+        }
+
+        public byte[] ToUdpBytes(ushort messageId)
+        {
+            if (IsLocal || Type == CommandType.Unknown)
+                throw new InvalidOperationException($"{Type} is a local or unknown command and cannot be formatted for UDP.");
+
+            byte typeByte = Type switch
+            {
+                CommandType.Auth => 0x00,
+                CommandType.Join => 0x01,
+                CommandType.Msg => 0x02,
+                CommandType.Err => 0xFE,
+                CommandType.Bye => 0xFF,
+                _ => throw new InvalidOperationException($"Unexpected command type for UDP: {Type}")
+            };
+
+            List<byte> bytes = new List<byte>();
+            bytes.Add(typeByte);
+            bytes.AddRange(BitConverter.GetBytes(messageId));
+
+            switch (Type)
+            {
+                case CommandType.Auth:
+                    bytes.AddRange(Encoding.ASCII.GetBytes(Username ?? ""));
+                    bytes.Add(0x00);
+                    bytes.AddRange(Encoding.ASCII.GetBytes(Secret ?? ""));
+                    bytes.Add(0x00);
+                    bytes.AddRange(Encoding.ASCII.GetBytes(DisplayName ?? ""));
+                    bytes.Add(0x00);
+                    break;
+
+                case CommandType.Join:
+                    bytes.AddRange(Encoding.ASCII.GetBytes(Channel ?? ""));
+                    bytes.Add(0x00);
+                    bytes.AddRange(Encoding.ASCII.GetBytes(DisplayName ?? ""));
+                    bytes.Add(0x00);
+                    break;
+
+                case CommandType.Msg:
+                case CommandType.Err:
+                    bytes.AddRange(Encoding.ASCII.GetBytes(DisplayName ?? ""));
+                    bytes.Add(0x00);
+                    bytes.AddRange(Encoding.ASCII.GetBytes(Content ?? ""));
+                    bytes.Add(0x00);
+                    break;
+
+                case CommandType.Bye:
+                    break;
+
+                default:
+                    throw new InvalidOperationException($"Unexpected command type for UDP: {Type}");
+            }
+
+            return bytes.ToArray();
         }
     }
 }
