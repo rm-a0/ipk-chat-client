@@ -9,6 +9,7 @@ namespace Ipk25Chat.IO
         Rename,
         Msg,
         Bye,
+        Err,
         Help,
         Unknown
     }
@@ -80,6 +81,7 @@ namespace Ipk25Chat.IO
                 CommandType.Auth => $"AUTH {Username} AS {DisplayName} USING {Secret}",
                 CommandType.Join => $"JOIN {Channel} AS {DisplayName}",
                 CommandType.Msg => $"MSG FROM {DisplayName} IS {Content}",
+                CommandType.Err => $"ERR FROM {DisplayName} IS {Content}",
                 CommandType.Bye => $"BYE FROM {DisplayName}",
                 _ => throw new InvalidOperationException($"Unexpected command type: {Type}")
             };

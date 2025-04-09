@@ -1,4 +1,6 @@
 using System.Runtime.InteropServices;
+using System.Security;
+using System.Threading.Tasks;
 
 namespace Ipk25Chat.Core
 {
@@ -84,30 +86,34 @@ namespace Ipk25Chat.Core
             }
         }
 
-        public void HandleResponse(Response response)
+        public async Task HandleResponse(Response response)
         {
             _semaphore.Wait();
             try
             {
+                bool shouldPrintResponse = false;
                 switch (_state)
                 {
                     case ClientState.Start:
-                        HandleReceiveStartState(response);
+                        shouldPrintResponse = HandleReceiveStartState(response);
                         break;
                     case ClientState.Auth:
-                        HandleReceiveAuthState(response);
+                        shouldPrintResponse =  await HandleReceiveAuthState(response);
                         break;
                     case ClientState.Open:
-                        HandleReceiveOpenState(response);
+                        shouldPrintResponse = await HandleReceiveOpenState(response);
                         break;
                     case ClientState.Join:
-                        HandleReceiveJoinState(response);
+                        shouldPrintResponse = HandleReceiveJoinState(response);
                         break;
                     case ClientState.End:
                         Debugger.Log("Reached end state, no responses should be received");
                         break;
                 }
-                Console.WriteLine(response.ToString());
+                if (shouldPrintResponse)
+                {
+                    Console.WriteLine(response.ToString());
+                }
             }
             finally
             {
@@ -176,21 +182,26 @@ namespace Ipk25Chat.Core
             return false;
         }
 
-        private void HandleReceiveStartState(Response response)
+        private bool HandleReceiveStartState(Response response)
         {
             _state = ClientState.End;
+            return true;
         }
 
-        private void HandleReceiveAuthState(Response response)
+        private async Task<bool> HandleReceiveAuthState(Response response)
         {
             if (response.Type == ResponseType.Msg)
             {
                 _state = ClientState.End;
-                // TODO: send error
+                string reply = "Received message in Auth state, terminating connection";
+                Console.WriteLine($"ERROR: {reply}");
+                Command command = new Command(type: CommandType.Err, content: reply);
+                await _client.SendMessageAsync(command);
+                return false;
             }
             else if (response.Type == ResponseType.ReplyNok)
             {
-                return;
+                return true;
             }
             else if (response.Type == ResponseType.ReplyOk)
             {
@@ -200,14 +211,19 @@ namespace Ipk25Chat.Core
             {
                 _state = ClientState.End;
             }
+            return true;
         }
 
-        private void HandleReceiveOpenState(Response response)
+        private async Task<bool> HandleReceiveOpenState(Response response)
         {
             if (response.Type == ResponseType.ReplyOk || response.Type == ResponseType.ReplyNok)
             {
                 _state = ClientState.End;
-                // TODO: send error
+                string reply = "Received reply in Open state, terminating connection";
+                Console.WriteLine($"ERROR: {reply}");
+                Command command = new Command(type: CommandType.Err, content: reply);
+                await _client.SendMessageAsync(command);
+                return false;
             }
             else if (response.Type == ResponseType.Err || response.Type == ResponseType.Bye)
             {
@@ -215,11 +231,12 @@ namespace Ipk25Chat.Core
             }
             else if (response.Type == ResponseType.Msg)
             {
-                return;
+                return true;
             }
+            return true; 
         }
 
-        private void HandleReceiveJoinState(Response response)
+        private bool HandleReceiveJoinState(Response response)
         {
             if (response.Type == ResponseType.ReplyOk || response.Type == ResponseType.ReplyNok)
             {
@@ -227,12 +244,13 @@ namespace Ipk25Chat.Core
             }
             else if (response.Type == ResponseType.Msg)
             {
-                return;
+                return true;;
             }
             else if (response.Type == ResponseType.Err || response.Type == ResponseType.Bye)
             {
                 _state = ClientState.End;
             }
+            return true;
         }
     }
 }
