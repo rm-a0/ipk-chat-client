@@ -57,3 +57,6 @@ TestResults/
 !.vscode/tasks.json
 !.vscode/launch.json
 !.vscode/extensions.json
+
+# Outsourced test files
+VUT_IPK_CLIENT_TESTS/

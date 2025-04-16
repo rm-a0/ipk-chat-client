@@ -85,7 +85,7 @@ namespace Ipk25Chat.Core
                 Command command = _inputParser.Parse(input);
                 if (!command.IsLocal && command.Type != CommandType.Unknown)
                 {
-                    await _stateMachine!.HandleCommandAsync(command);
+                    await _stateMachine!.HandleCommandAsync(command, _inputParser.GetDisplayName());
                 }
             }
             catch (ArgumentException ex)

@@ -4,7 +4,7 @@ namespace Ipk25Chat.IO
     {
         private string _displayName;
 
-        public InputParser(string initialDisplayName = "User")
+        public InputParser(string initialDisplayName = "")
         {
             _displayName = initialDisplayName;
         }
@@ -46,7 +46,7 @@ namespace Ipk25Chat.IO
 
                     case "/help":
                         PrintHelp();
-                        return new Command(CommandType.Help);
+                        return new Command(CommandType.Help, isLocal: true);
 
                     case "/bye":
                         return new Command(CommandType.Bye, displayName: _displayName);
