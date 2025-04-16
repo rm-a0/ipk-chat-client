@@ -66,8 +66,10 @@ namespace Ipk25Chat.Core
             if (completed == inputTask)
             {
                 string? input = inputTask.Result;
-                if (input == null) 
+                if (input == null) {
+                    await ProcessInputAsync("/bye");
                     break;
+                }
                 Debugger.Log($"User input from console: {input}");
                 await ProcessInputAsync(input);
             }
