@@ -13,10 +13,10 @@ namespace Ipk25Chat.Network
         private UdpClient? _client;
         private IPEndPoint? _serverEndPoint;
         private bool _isConnected;
-        private ushort _nextMessageId;
         private bool _shouldExit = false;
         private CancellationTokenSource? _confirmTimeoutCts;
         private readonly object _pendingLock = new object();
+        private ushort _nextMessageId;
         private ushort? _pendingMessageId;
 
         public UdpChatClient(string server, int port, int timeout, int retries)
@@ -44,8 +44,6 @@ namespace Ipk25Chat.Network
                 throw new InvalidOperationException("Client not initialized");
             }
 
-            byte[] buffer = new byte[65535];
-
             while (_isConnected && !token.IsCancellationRequested)
             {
                 try
@@ -67,9 +65,10 @@ namespace Ipk25Chat.Network
                         continue; // Confirm wont be passed to fsm
                     }
 
+
                     if (response.MessageId.HasValue)
                     {
-                        await SendConfirmAsync(response.MessageId.Value, remoteEndPoint);
+                        await SendConfirmAsync(response.MessageId.Value);
                     }
 
                     _serverEndPoint = remoteEndPoint;
@@ -137,6 +136,7 @@ namespace Ipk25Chat.Network
                 _pendingMessageId = messageId;
             }
 
+            _confirmTimeoutCts?.Dispose();
             _confirmTimeoutCts = new CancellationTokenSource();
             _ = StartConfirmTimeoutAsync(command.Type, data, messageId);
 
@@ -176,7 +176,7 @@ namespace Ipk25Chat.Network
                     }
                     catch (TaskCanceledException)
                     {
-                        confirmed = true; // CONFIRM received, timer canceled
+                        confirmed = true;
                     }
                 }
                 catch (SocketException ex)
@@ -224,20 +224,20 @@ namespace Ipk25Chat.Network
             }
         }
 
-        private async Task SendConfirmAsync(ushort refMessageId, IPEndPoint remoteEndPoint)
+        private async Task SendConfirmAsync(ushort refMessageId)
         {
             if (_client == null) return;
 
             byte[] confirmData = new byte[3];
             confirmData[0] = 0x00;
-            confirmData[1] = (byte)(refMessageId >> 8); // Ref MessageID high byte
-            confirmData[2] = (byte)(refMessageId & 0xFF); // Ref MessageID low byte
-            _nextMessageId++;
+            confirmData[1] = (byte)(refMessageId >> 8);
+            confirmData[2] = (byte)(refMessageId & 0xFF);
 
             try
             {
-                await _client.SendAsync(confirmData, confirmData.Length, remoteEndPoint);
-                Debugger.Log($"Sent CONFIRM for MessageID {refMessageId} to {remoteEndPoint}");
+                await _client.SendAsync(confirmData, confirmData.Length, _serverEndPoint);
+                Debugger.Log($"Sent CONFIRM for MessageID {refMessageId} to {_serverEndPoint}");
+                Debugger.Log($"Sending CONFIRM: {BitConverter.ToString(confirmData)}");
             }
             catch (SocketException ex)
             {

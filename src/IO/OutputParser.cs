@@ -102,99 +102,51 @@ namespace Ipk25Chat.IO
 
         public static Response Parse(byte[] data)
         {
-            if (data == null || data.Length < 1)
-                return new Response(ResponseType.Unknown, null, "Received empty or malformed UDP message");
+            if (data.Length < 3)
+                throw new ArgumentException("UDP message too short");
 
             byte type = data[0];
+            ushort messageId = (ushort)(data[1] << 8 | data[2]); // Big-endian
 
-            try
+            switch (type)
             {
-                switch (type)
-                {
-                    case 0x00: // CONFIRM
-                        if (data.Length != 3)
-                            return new Response(ResponseType.Unknown, null, $"Malformed CONFIRM message: expected 3 bytes, got {data.Length}");
-                        ushort refMessageId = (ushort)((data[1] << 8) | data[2]);
-                        return new Response(ResponseType.Confirm, null, null, false, null, refMessageId); // No MessageID
+                case 0x00: // CONFIRM
+                    if (data.Length != 3)
+                        throw new ArgumentException("Invalid CONFIRM format: must be 3 bytes");
+                    return new Response(ResponseType.Confirm, null, null, false, messageId, messageId);
 
-                    case 0x01: // REPLY
-                        if (data.Length < 6)
-                            return new Response(ResponseType.Unknown, null, $"REPLY message too short: {data.Length} bytes");
-                        ushort messageId = (ushort)((data[1] << 8) | data[2]);
-                        bool isSuccess = data[3] == 1;
-                        ushort refMsgId = (ushort)((data[4] << 8) | data[5]);
-                        string content = ExtractString(data, 6);
-                        ResponseType replyType = isSuccess ? ResponseType.ReplyOk : ResponseType.ReplyNok;
-                        return new Response(replyType, null, content, isSuccess, messageId, refMsgId);
+                case 0x01: // REPLY
+                    if (data.Length < 6)
+                        throw new ArgumentException("Invalid REPLY format: too short");
+                    bool isSuccess = data[3] == 0x01;
+                    ushort refMessageId = (ushort)(data[4] << 8 | data[5]);
+                    string content = Encoding.ASCII.GetString(data, 6, data.Length - 6).TrimEnd('\0');
+                    ResponseType replyType = isSuccess ? ResponseType.ReplyOk : ResponseType.ReplyNok;
+                    return new Response(replyType, null, content, isSuccess, messageId, refMessageId);
 
-                    case 0x04: // MSG
-                        if (data.Length < 4)
-                            return new Response(ResponseType.Unknown, null, $"MSG message too short: {data.Length} bytes");
-                        messageId = (ushort)((data[1] << 8) | data[2]);
-                        string[] fields = ExtractStrings(data, 3, 2);
-                        if (fields.Length != 2)
-                            return new Response(ResponseType.Unknown, null, $"MSG message missing required fields: found {fields.Length}");
-                        return new Response(ResponseType.Msg, fields[0], fields[1], false, messageId);
+                case 0x04: // MSG
+                case 0xFE: // ERR
+                    if (data.Length < 4)
+                        throw new ArgumentException("Invalid MSG/ERR format: too short");
+                    var parts = Encoding.ASCII.GetString(data, 3, data.Length - 3)
+                        .Split('\0', StringSplitOptions.RemoveEmptyEntries);
+                    if (parts.Length < 2)
+                        throw new ArgumentException("Invalid MSG/ERR format: expected DisplayName and Content");
+                    ResponseType msgType = type == 0x04 ? ResponseType.Msg : ResponseType.Err;
+                    return new Response(msgType, parts[0], parts[1], false, messageId);
 
-                    case 0xFE: // ERR
-                        if (data.Length < 4)
-                            return new Response(ResponseType.Unknown, null, $"ERR message too short: {data.Length} bytes");
-                        messageId = (ushort)((data[1] << 8) | data[2]);
-                        fields = ExtractStrings(data, 3, 2);
-                        if (fields.Length != 2)
-                            return new Response(ResponseType.Unknown, null, $"ERR message missing required fields: found {fields.Length}");
-                        return new Response(ResponseType.Err, fields[0], fields[1], false, messageId);
+                case 0xFF: // BYE
+                    if (data.Length < 4)
+                        throw new ArgumentException("Invalid BYE format: too short");
+                    string displayName = Encoding.ASCII.GetString(data, 3, data.Length - 4).TrimEnd('\0');
+                    return new Response(ResponseType.Bye, displayName, null, false, messageId);
 
-                    case 0xFF: // BYE
-                        if (data.Length < 4)
-                            return new Response(ResponseType.Unknown, null, $"BYE message too short: {data.Length} bytes");
-                        messageId = (ushort)((data[1] << 8) | data[2]);
-                        string displayName = ExtractString(data, 3);
-                        if (string.IsNullOrEmpty(displayName))
-                            return new Response(ResponseType.Unknown, null, "BYE message missing DisplayName");
-                        return new Response(ResponseType.Bye, displayName, null, false, messageId);
+                case 0xFD: // PING
+                    return new Response(ResponseType.Ping, null, null, false, messageId);
 
-                    case 0xFD: // PING
-                        if (data.Length < 3)
-                            return new Response(ResponseType.Unknown, null, $"PING message too short: {data.Length} bytes");
-                        messageId = (ushort)((data[1] << 8) | data[2]);
-                        return new Response(ResponseType.Ping, null, "PING message received", false, messageId);
-
-                    default:
-                        return new Response(ResponseType.Unknown, null, $"Unrecognized UDP message type: 0x{type:X2}");
-                }
+                default:
+                    return new Response(ResponseType.Unknown, null, $"Unknown UDP message type: 0x{type:X2}", false, messageId);
             }
-            catch (Exception ex)
-            {
-                return new Response(ResponseType.Unknown, null, $"Failed to parse UDP message: {ex.Message}");
-            }
-        }
-
-        private static string ExtractString(byte[] data, int startIndex)
-        {
-            int endIndex = startIndex;
-            while (endIndex < data.Length && data[endIndex] != 0)
-                endIndex++;
-            if (endIndex >= data.Length || endIndex == startIndex)
-                throw new FormatException("Invalid string termination in UDP message");
-            return Encoding.ASCII.GetString(data, startIndex, endIndex - startIndex);
-        }
-
-        private static string[] ExtractStrings(byte[] data, int startIndex, int count)
-        {
-            List<string> result = new List<string>();
-            int index = startIndex;
-
-            for (int i = 0; i < count && index < data.Length; i++)
-            {
-                string str = ExtractString(data, index);
-                result.Add(str);
-                index += str.Length + 1;
-            }
-
-            if (result.Count != count)
-                throw new FormatException($"Expected {count} strings, found {result.Count}");
-            return result.ToArray();
         }
     }
 }

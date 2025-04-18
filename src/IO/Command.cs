@@ -109,45 +109,35 @@ namespace Ipk25Chat.IO
             List<byte> bytes = new List<byte>();
             bytes.Add(typeByte);
             bytes.Add((byte)(messageId >> 8)); // High byte
-            bytes.Add((byte)(messageId & 0xFF)); // Low byte
+            bytes.Add((byte)messageId); // Low byte
 
             switch (Type)
             {
                 case CommandType.Auth:
-                    if (Username == null || DisplayName == null || Secret == null)
-                        throw new InvalidOperationException("Username, DisplayName, and Secret are required for AUTH.");
-                    bytes.AddRange(Encoding.ASCII.GetBytes(Username));
+                    bytes.AddRange(Encoding.ASCII.GetBytes(Username ?? ""));
                     bytes.Add(0x00);
-                    bytes.AddRange(Encoding.ASCII.GetBytes(DisplayName));
+                    bytes.AddRange(Encoding.ASCII.GetBytes(DisplayName ?? ""));
                     bytes.Add(0x00);
-                    bytes.AddRange(Encoding.ASCII.GetBytes(Secret));
+                    bytes.AddRange(Encoding.ASCII.GetBytes(Secret ?? ""));
                     bytes.Add(0x00);
                     break;
 
                 case CommandType.Join:
-                    if (Channel == null || DisplayName == null)
-                        throw new InvalidOperationException("Channel and DisplayName are required for JOIN.");
-                    bytes.AddRange(Encoding.ASCII.GetBytes(Channel));
+                    bytes.AddRange(Encoding.ASCII.GetBytes(Channel ?? ""));
                     bytes.Add(0x00);
-                    bytes.AddRange(Encoding.ASCII.GetBytes(DisplayName));
+                    bytes.AddRange(Encoding.ASCII.GetBytes(DisplayName ?? ""));
                     bytes.Add(0x00);
                     break;
 
                 case CommandType.Msg:
                 case CommandType.Err:
-                    if (DisplayName == null || Content == null)
-                        throw new InvalidOperationException("DisplayName and Content are required for MSG/ERR.");
-                    bytes.AddRange(Encoding.ASCII.GetBytes(DisplayName));
+                    bytes.AddRange(Encoding.ASCII.GetBytes(DisplayName ?? ""));
                     bytes.Add(0x00);
-                    bytes.AddRange(Encoding.ASCII.GetBytes(Content));
+                    bytes.AddRange(Encoding.ASCII.GetBytes(Content ?? ""));
                     bytes.Add(0x00);
                     break;
 
                 case CommandType.Bye:
-                    if (DisplayName == null)
-                        throw new InvalidOperationException("DisplayName is required for BYE.");
-                    bytes.AddRange(Encoding.ASCII.GetBytes(DisplayName));
-                    bytes.Add(0x00);
                     break;
 
                 default:
