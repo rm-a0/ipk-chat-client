@@ -122,7 +122,7 @@ namespace Ipk25Chat.IO
                     ushort refMessageId = (ushort)(data[4] << 8 | data[5]);
                     string content = Encoding.ASCII.GetString(data, 6, data.Length - 6).TrimEnd('\0');
                     ResponseType replyType = isSuccess ? ResponseType.ReplyOk : ResponseType.ReplyNok;
-                    return new Response(replyType, null, content, isSuccess, messageId, refMessageId);
+                    return new Response(replyType, null, content, isSuccess, messageId, refMessageId, true);
 
                 case 0x04: // MSG
                 case 0xFE: // ERR
@@ -133,13 +133,13 @@ namespace Ipk25Chat.IO
                     if (parts.Length < 2)
                         throw new ArgumentException("Invalid MSG/ERR format: expected DisplayName and Content");
                     ResponseType msgType = type == 0x04 ? ResponseType.Msg : ResponseType.Err;
-                    return new Response(msgType, parts[0], parts[1], false, messageId);
+                    return new Response(msgType, parts[0], parts[1], false, messageId, null, true);
 
                 case 0xFF: // BYE
                     if (data.Length < 4)
                         throw new ArgumentException("Invalid BYE format: too short");
                     string displayName = Encoding.ASCII.GetString(data, 3, data.Length - 4).TrimEnd('\0');
-                    return new Response(ResponseType.Bye, displayName, null, false, messageId);
+                    return new Response(ResponseType.Bye, displayName, null, false, messageId, null, true);
 
                 case 0xFD: // PING
                     return new Response(ResponseType.Ping, null, null, false, messageId);

@@ -24,7 +24,7 @@ namespace Ipk25Chat.Network
             _server = server;
             _port = port;
             _timeout = timeout;
-            _retries = retries;
+            _retries = 0;
             _nextMessageId = 0;
         }
 
@@ -63,16 +63,16 @@ namespace Ipk25Chat.Network
                         {
                             HandleConfirm(response.RefMessageId.Value);
                         }
-                        continue; // Confirm wont be passed to fsm
+                        continue;
                     }
 
+                    _serverEndPoint = remoteEndPoint;
 
-                    if (response.MessageId.HasValue)
+                    if (response.MessageId.HasValue && response.ShouldConfirm)
                     {
                         await SendConfirmAsync(response.MessageId.Value);
                     }
 
-                    _serverEndPoint = remoteEndPoint;
                     _ = stateMachine.HandleResponse(response);
                 }
                 catch (OperationCanceledException)
@@ -131,7 +131,6 @@ namespace Ipk25Chat.Network
             byte[] data = command.ToUdpBytes(_nextMessageId);
             ushort messageId = _nextMessageId;
             _nextMessageId++;
-            Debugger.Log($"Sending: {BitConverter.ToString(data)} (MessageID: {messageId})");
 
             lock (_pendingLock)
             {
@@ -140,20 +139,11 @@ namespace Ipk25Chat.Network
 
             _confirmTimeoutCts?.Dispose();
             _confirmTimeoutCts = new CancellationTokenSource();
-            _ = StartConfirmTimeoutAsync(command.Type, data, messageId);
-
-            try
-            {
-                await _client.SendAsync(data, data.Length, _serverEndPoint);
-            }
-            catch (SocketException ex)
-            {
-                Debugger.Log($"Failed to send message: {ex.Message}");
-                throw;
-            }
+            _ = SendWithTimeoutAsync(command.Type, data, messageId);
+            await Task.CompletedTask;
         }
 
-        private async Task StartConfirmTimeoutAsync(CommandType commandType, byte[] data, ushort messageId)
+        private async Task SendWithTimeoutAsync(CommandType commandType, byte[] data, ushort messageId)
         {
             int attempts = 0;
             bool confirmed = false;
@@ -235,6 +225,7 @@ namespace Ipk25Chat.Network
 
             try
             {
+                Debugger.Log($"Preparing to send CONFIRM for REPLY MessageID {refMessageId}");
                 await _client.SendAsync(confirmData, confirmData.Length, _serverEndPoint);
                 Debugger.Log($"Sent CONFIRM for MessageID {refMessageId} to {_serverEndPoint}");
                 Debugger.Log($"Sending CONFIRM: {BitConverter.ToString(confirmData)}");

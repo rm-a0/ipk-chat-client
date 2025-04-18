@@ -20,8 +20,12 @@ namespace Ipk25Chat.IO
         public bool IsSuccess { get; }
         public ushort? MessageId { get; }
         public ushort? RefMessageId { get; }
+        public bool ShouldConfirm { get; }
 
-        public Response(ResponseType type, string? displayName = null, string? content = null, bool isSuccess = false, ushort? messageId = null, ushort? refMessageId = null)
+        public Response(ResponseType type, string? displayName = null, 
+                        string? content = null, bool isSuccess = false, 
+                        ushort? messageId = null, ushort? refMessageId = null,
+                        bool shouldConfirm = false)
         {
             Type = type;
             DisplayName = displayName;
@@ -29,6 +33,7 @@ namespace Ipk25Chat.IO
             IsSuccess = isSuccess;
             MessageId = messageId;
             RefMessageId = refMessageId;
+            ShouldConfirm= shouldConfirm;
         }
 
         public override string ToString()
