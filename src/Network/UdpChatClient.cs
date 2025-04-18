@@ -24,7 +24,7 @@ namespace Ipk25Chat.Network
             _server = server;
             _port = port;
             _timeout = timeout;
-            _retries = 0;
+            _retries = retries;
             _nextMessageId = 0;
         }
 
@@ -73,7 +73,7 @@ namespace Ipk25Chat.Network
                         await SendConfirmAsync(response.MessageId.Value);
                     }
 
-                    _ = stateMachine.HandleResponse(response);
+                    _ = stateMachine.HandleResponseAsync(response);
                 }
                 catch (OperationCanceledException)
                 {

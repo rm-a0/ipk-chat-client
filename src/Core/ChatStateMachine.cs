@@ -100,7 +100,7 @@ namespace Ipk25Chat.Core
             }
         }
 
-        public async Task HandleResponse(Response response)
+        public async Task HandleResponseAsync(Response response)
         {
             await _semaphore.WaitAsync();
             try

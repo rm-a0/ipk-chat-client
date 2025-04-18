@@ -62,7 +62,7 @@ namespace Ipk25Chat.Network
                             Debugger.Log("Reply timeout timer canceled due to REPLY received");
                         }
                     }
-                    _ = stateMachine.HandleResponse(response);
+                    _ = stateMachine.HandleResponseAsync(response);
                 }
                 catch (OperationCanceledException)
                 {

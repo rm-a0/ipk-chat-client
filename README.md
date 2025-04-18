@@ -19,6 +19,9 @@ Client application for remote server communication using IPK25-CHAT protocol wri
     - [IPK25-CHAT Protocol](#ipk25-chat-protocol)
 - [Implementation Details](#implementation-details)
   - [Code Structure](#code-structure)
+  - [Key Classes and Namespaces](#key-classes-and-namespaces)
+  - [Simplified Class Diagram](#simplified-class-diagram)
+  - [Activity Diagram](#activity-diagram)
 
 ## Summary
 This application communicates with a remote server using the `IPK25-CHAT` protocol built on top of TCP/UDP transport protocols.
@@ -149,3 +152,11 @@ src/
 ├── ipk25chat-client.csproj   # Project file
 ```
 ### Key Classes and Namespaces
+
+### Simplified Class Diagram
+The class diagram shows the main system components and how they interact between each other.
+![class-diagram](doc/class-diagram.jpg)
+
+### Activity Diagram
+The activity diagram illustrates parallel processes and concurrent tasks within the system.
+![activity-diagram](doc/activity-diagram.jpg)

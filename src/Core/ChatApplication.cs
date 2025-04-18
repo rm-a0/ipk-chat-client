@@ -96,15 +96,6 @@ namespace Ipk25Chat.Core
             }
         }
 
-        private async Task HandleExitAsync()
-        {
-            _cancellationTokenSource.Cancel();
-            if (_client != null)
-            {
-                await _client.DisconnectAsync();
-            }
-        }
-
         private void OnStateMachineRequestExit(object? sender, EventArgs e)
         {
             _cancellationTokenSource.Cancel();
