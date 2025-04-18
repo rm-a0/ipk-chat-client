@@ -54,7 +54,13 @@ namespace Ipk25Chat.Network
                     Response response = OutputParser.Parse(output);
 
                     if (response.Type == ResponseType.ReplyNok || response.Type == ResponseType.ReplyOk) {
-                        // turn off timer
+                        if (_replyTimeoutCts != null)
+                        {
+                            _replyTimeoutCts.Cancel();
+                            _replyTimeoutCts.Dispose();
+                            _replyTimeoutCts = null;
+                            Debugger.Log("Reply timeout timer canceled due to REPLY received");
+                        }
                     }
                     _ = stateMachine.HandleResponse(response);
                 }
@@ -103,6 +109,10 @@ namespace Ipk25Chat.Network
             }
 
             if (command.Type == CommandType.Auth || command.Type == CommandType.Join) {
+                if (_replyTimeoutCts != null)
+                {
+                    _replyTimeoutCts.Dispose();
+                }
                 _replyTimeoutCts = new CancellationTokenSource();
                 _ = StartReplyTimeoutAsync(command.Type);
             }
