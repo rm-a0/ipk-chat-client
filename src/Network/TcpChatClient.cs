@@ -122,8 +122,6 @@ namespace Ipk25Chat.Network
                 await Task.Delay(_timeout, _replyTimeoutCts!.Token);
                 Console.WriteLine($"ERROR: No REPLY received for {commandType} within {_timeout} ms");
                 _shouldExit = true;
-                _isConnected = false;
-                await DisconnectAsync();
             }
             catch (TaskCanceledException) { }
         }

@@ -205,9 +205,7 @@ namespace Ipk25Chat.Network
             if (!confirmed)
             {
                 Console.WriteLine($"ERROR: No CONFIRM received for {commandType} after {_retries + 1} attempts");
-                _isConnected = false;
                 _shouldExit = true;
-                await DisconnectAsync();
             }
         }
 
