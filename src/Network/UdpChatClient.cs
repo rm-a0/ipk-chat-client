@@ -35,6 +35,7 @@ namespace Ipk25Chat.Network
             _isConnected = true;
             _confirmTimeoutCts = new CancellationTokenSource();
             Debugger.Log("Connected to UDP endpoint");
+            await Task.CompletedTask;
         }
 
         public async Task ListenToServerAsync(ChatStateMachine stateMachine, CancellationToken token)
@@ -104,6 +105,7 @@ namespace Ipk25Chat.Network
                 _client = null;
                 Debugger.Log("UDP client closed.");
             }
+            await Task.CompletedTask;
         }
 
         public async Task SendMessageAsync(Command command)
