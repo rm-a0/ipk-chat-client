@@ -40,6 +40,8 @@ namespace Ipk25Chat.IO
                 ResponseType.Msg => $"{DisplayName}: {Content}",
                 ResponseType.Err => $"ERROR FROM {DisplayName}: {Content}",
                 ResponseType.Bye => $"BYE FROM {DisplayName}",
+                ResponseType.Confirm => $"Confirm for MessageID {RefMessageId}",
+                ResponseType.Ping=> $"PING received",
                 ResponseType.Unknown => $"ERROR: Unknown response: {Content}",
                 _ => "ERROR: Invalid response"
             };

@@ -57,11 +57,19 @@ namespace Ipk25Chat.Network
                     Debugger.Log($"Raw output received: {BitConverter.ToString(receivedData)} from {result.RemoteEndPoint}");
                     Response response = OutputParser.Parse(receivedData);
 
-                    if (response.Type == ResponseType.Confirm) {
+                    if (response.Type == ResponseType.Confirm)
+                    {
+
                         if (response.RefMessageId.HasValue)
                         {
+                            HandleConfirm(response.RefMessageId.Value);
                         }
-                        continue; // Confirm wont be passed to state machine
+                        continue; // Confirm wont be passed to fsm
+                    }
+
+                    if (response.MessageId.HasValue)
+                    {
+                        await SendConfirmAsync(response.MessageId.Value, remoteEndPoint);
                     }
 
                     _serverEndPoint = remoteEndPoint;
@@ -111,11 +119,26 @@ namespace Ipk25Chat.Network
                 return;
             }
 
+            lock (_pendingLock)
+            {
+                if (_pendingMessageId.HasValue)
+                {
+                    throw new InvalidOperationException("Another message is awaiting confirmation");
+                }
+            }
+
             byte[] data = command.ToUdpBytes(_nextMessageId);
             ushort messageId = _nextMessageId;
             _nextMessageId++;
-
             Debugger.Log($"Sending: {BitConverter.ToString(data)} (MessageID: {messageId})");
+
+            lock (_pendingLock)
+            {
+                _pendingMessageId = messageId;
+            }
+
+            _confirmTimeoutCts = new CancellationTokenSource();
+            _ = StartConfirmTimeoutAsync(command.Type, data, messageId);
 
             try
             {
@@ -185,6 +208,40 @@ namespace Ipk25Chat.Network
                 _isConnected = false;
                 _shouldExit = true;
                 await DisconnectAsync();
+            }
+        }
+
+        private void HandleConfirm(ushort refMessageId)
+        {
+            lock (_pendingLock)
+            {
+                if (_pendingMessageId == refMessageId)
+                {
+                    _pendingMessageId = null;
+                    _confirmTimeoutCts?.Cancel();
+                    Debugger.Log($"Received CONFIRM for MessageID {refMessageId}");
+                }
+            }
+        }
+
+        private async Task SendConfirmAsync(ushort refMessageId, IPEndPoint remoteEndPoint)
+        {
+            if (_client == null) return;
+
+            byte[] confirmData = new byte[3];
+            confirmData[0] = 0x00;
+            confirmData[1] = (byte)(refMessageId >> 8); // Ref MessageID high byte
+            confirmData[2] = (byte)(refMessageId & 0xFF); // Ref MessageID low byte
+            _nextMessageId++;
+
+            try
+            {
+                await _client.SendAsync(confirmData, confirmData.Length, remoteEndPoint);
+                Debugger.Log($"Sent CONFIRM for MessageID {refMessageId} to {remoteEndPoint}");
+            }
+            catch (SocketException ex)
+            {
+                Debugger.Log($"Failed to send CONFIRM: {ex.Message}");
             }
         }
 

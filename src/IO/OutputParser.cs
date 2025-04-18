@@ -102,24 +102,25 @@ namespace Ipk25Chat.IO
 
         public static Response Parse(byte[] data)
         {
-            if (data == null || data.Length < 3)
+            if (data == null || data.Length < 1)
                 return new Response(ResponseType.Unknown, null, "Received empty or malformed UDP message");
 
             byte type = data[0];
-            ushort messageId = (ushort)((data[1] << 8) | data[2]);
+
             try
             {
                 switch (type)
                 {
                     case 0x00: // CONFIRM
-                        if (data.Length != 5)
-                            return new Response(ResponseType.Unknown, null, $"Malformed CONFIRM message: expected 5 bytes, got {data.Length}");
-                        ushort refMessageId = (ushort)((data[3] << 8) | data[4]);
-                        return new Response(ResponseType.Confirm, null, null, false, messageId, refMessageId);
+                        if (data.Length != 3)
+                            return new Response(ResponseType.Unknown, null, $"Malformed CONFIRM message: expected 3 bytes, got {data.Length}");
+                        ushort refMessageId = (ushort)((data[1] << 8) | data[2]);
+                        return new Response(ResponseType.Confirm, null, null, false, null, refMessageId); // No MessageID
 
                     case 0x01: // REPLY
-                        if (data.Length < 6) // Type + MessageID + Result + RefMessageID + Content + Null
+                        if (data.Length < 6)
                             return new Response(ResponseType.Unknown, null, $"REPLY message too short: {data.Length} bytes");
+                        ushort messageId = (ushort)((data[1] << 8) | data[2]);
                         bool isSuccess = data[3] == 1;
                         ushort refMsgId = (ushort)((data[4] << 8) | data[5]);
                         string content = ExtractString(data, 6);
@@ -127,31 +128,37 @@ namespace Ipk25Chat.IO
                         return new Response(replyType, null, content, isSuccess, messageId, refMsgId);
 
                     case 0x04: // MSG
-                        if (data.Length < 4) // Type + MessageID + DisplayName + Null
+                        if (data.Length < 4)
                             return new Response(ResponseType.Unknown, null, $"MSG message too short: {data.Length} bytes");
+                        messageId = (ushort)((data[1] << 8) | data[2]);
                         string[] fields = ExtractStrings(data, 3, 2);
                         if (fields.Length != 2)
                             return new Response(ResponseType.Unknown, null, $"MSG message missing required fields: found {fields.Length}");
                         return new Response(ResponseType.Msg, fields[0], fields[1], false, messageId);
 
                     case 0xFE: // ERR
-                        if (data.Length < 4) // Type + MessageID + DisplayName + Null
+                        if (data.Length < 4)
                             return new Response(ResponseType.Unknown, null, $"ERR message too short: {data.Length} bytes");
+                        messageId = (ushort)((data[1] << 8) | data[2]);
                         fields = ExtractStrings(data, 3, 2);
                         if (fields.Length != 2)
                             return new Response(ResponseType.Unknown, null, $"ERR message missing required fields: found {fields.Length}");
                         return new Response(ResponseType.Err, fields[0], fields[1], false, messageId);
 
                     case 0xFF: // BYE
-                        if (data.Length < 4) // Type + MessageID + DisplayName + Null
+                        if (data.Length < 4)
                             return new Response(ResponseType.Unknown, null, $"BYE message too short: {data.Length} bytes");
+                        messageId = (ushort)((data[1] << 8) | data[2]);
                         string displayName = ExtractString(data, 3);
                         if (string.IsNullOrEmpty(displayName))
                             return new Response(ResponseType.Unknown, null, "BYE message missing DisplayName");
                         return new Response(ResponseType.Bye, displayName, null, false, messageId);
 
                     case 0xFD: // PING
-                        return new Response(ResponseType.Unknown, null, "PING message received", false, messageId);
+                        if (data.Length < 3)
+                            return new Response(ResponseType.Unknown, null, $"PING message too short: {data.Length} bytes");
+                        messageId = (ushort)((data[1] << 8) | data[2]);
+                        return new Response(ResponseType.Ping, null, "PING message received", false, messageId);
 
                     default:
                         return new Response(ResponseType.Unknown, null, $"Unrecognized UDP message type: 0x{type:X2}");

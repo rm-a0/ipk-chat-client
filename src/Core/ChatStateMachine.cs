@@ -108,7 +108,7 @@ namespace Ipk25Chat.Core
                 bool shouldPrintResponse = false;
                 if (response.Type == ResponseType.Unknown) {
                     Debugger.Log("Unknown response received termination connection");
-                    Console.WriteLine($"ERROR: Malformed message received");
+                    Console.WriteLine($"ERROR: Malformed message received, content: {response.Content}");
                     await SendErrorByeAsync("Malformed message received");
                 }
                 else if(response.Type == ResponseType.Err) {
