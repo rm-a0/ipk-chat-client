@@ -10,11 +10,15 @@ namespace Ipk25Chat.Network
         private TcpClient? _client;
         private NetworkStream? _stream;
         private bool _isConnected;
+        private int _timeout;
+        private int _retries;
 
         public TcpChatClient(string server, int port)
         {
             _server = server;
             _port = port;
+            _timeout = 5000;
+            _retries = 0;
         }
 
         public async Task ConnectAsync()
@@ -98,5 +102,8 @@ namespace Ipk25Chat.Network
             await _stream.WriteAsync(data, 0, data.Length);
             
         }
+
+        public int GetTimeout() => _timeout;
+        public int GetRetries() => _retries;
     }
 }

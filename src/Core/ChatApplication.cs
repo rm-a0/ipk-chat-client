@@ -40,7 +40,7 @@ namespace Ipk25Chat.Core
             Debugger.Log("Debugger enabled");
             Debugger.Log($"Server IP: {_parser.Server}");
 
-            _client = ChatClientFactory.Create(_parser.Protocol, _parser.Server, _parser.Port);
+            _client = ChatClientFactory.Create(_parser.Protocol, _parser.Server, _parser.Port, _parser.UdpTimeout, _parser.UdpTimeout);
             await _client.ConnectAsync();
 
             _stateMachine = new ChatStateMachine(_client);

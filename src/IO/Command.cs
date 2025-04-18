@@ -21,6 +21,9 @@ namespace Ipk25Chat.IO
         private static readonly Regex PrintablePattern = new Regex(@"^[\x21-\x7E]*$", RegexOptions.Compiled);
         private static readonly Regex ContentPattern = new Regex(@"^[\x0A\x20-\x7E]*$", RegexOptions.Compiled);
 
+        private static ushort _messageId = 0;
+        private static readonly object _messageIdLock = new object();
+
         public CommandType Type { get; }
         public string? Username { get; }
         public string? Secret { get; }
@@ -88,16 +91,22 @@ namespace Ipk25Chat.IO
             };
         }
 
-        public byte[] ToUdpBytes(ushort messageId)
+        public byte[] ToUdpBytes()
         {
             if (IsLocal || Type == CommandType.Unknown)
                 throw new InvalidOperationException($"{Type} is a local or unknown command and cannot be formatted for UDP.");
 
+            ushort messageId;
+            lock (_messageIdLock)
+            {
+                messageId = _messageId++;
+            }
+
             byte typeByte = Type switch
             {
-                CommandType.Auth => 0x00,
-                CommandType.Join => 0x01,
-                CommandType.Msg => 0x02,
+                CommandType.Auth => 0x02,
+                CommandType.Join => 0x03,
+                CommandType.Msg => 0x04,
                 CommandType.Err => 0xFE,
                 CommandType.Bye => 0xFF,
                 _ => throw new InvalidOperationException($"Unexpected command type for UDP: {Type}")
@@ -105,35 +114,47 @@ namespace Ipk25Chat.IO
 
             List<byte> bytes = new List<byte>();
             bytes.Add(typeByte);
-            bytes.AddRange(BitConverter.GetBytes(messageId));
+
+            bytes.Add((byte)(messageId >> 8)); // High byte
+            bytes.Add((byte)(messageId & 0xFF)); // Low byte
 
             switch (Type)
             {
                 case CommandType.Auth:
-                    bytes.AddRange(Encoding.ASCII.GetBytes(Username ?? ""));
+                    if (Username == null || DisplayName == null || Secret == null)
+                        throw new InvalidOperationException("Username, DisplayName, and Secret are required for AUTH.");
+                    bytes.AddRange(Encoding.ASCII.GetBytes(Username));
                     bytes.Add(0x00);
-                    bytes.AddRange(Encoding.ASCII.GetBytes(Secret ?? ""));
+                    bytes.AddRange(Encoding.ASCII.GetBytes(DisplayName));
                     bytes.Add(0x00);
-                    bytes.AddRange(Encoding.ASCII.GetBytes(DisplayName ?? ""));
+                    bytes.AddRange(Encoding.ASCII.GetBytes(Secret));
                     bytes.Add(0x00);
                     break;
 
                 case CommandType.Join:
-                    bytes.AddRange(Encoding.ASCII.GetBytes(Channel ?? ""));
+                    if (Channel == null || DisplayName == null)
+                        throw new InvalidOperationException("Channel and DisplayName are required for JOIN.");
+                    bytes.AddRange(Encoding.ASCII.GetBytes(Channel));
                     bytes.Add(0x00);
-                    bytes.AddRange(Encoding.ASCII.GetBytes(DisplayName ?? ""));
+                    bytes.AddRange(Encoding.ASCII.GetBytes(DisplayName));
                     bytes.Add(0x00);
                     break;
 
                 case CommandType.Msg:
                 case CommandType.Err:
-                    bytes.AddRange(Encoding.ASCII.GetBytes(DisplayName ?? ""));
+                    if (DisplayName == null || Content == null)
+                        throw new InvalidOperationException("DisplayName and Content are required for MSG/ERR.");
+                    bytes.AddRange(Encoding.ASCII.GetBytes(DisplayName));
                     bytes.Add(0x00);
-                    bytes.AddRange(Encoding.ASCII.GetBytes(Content ?? ""));
+                    bytes.AddRange(Encoding.ASCII.GetBytes(Content));
                     bytes.Add(0x00);
                     break;
 
                 case CommandType.Bye:
+                    if (DisplayName == null)
+                        throw new InvalidOperationException("DisplayName is required for BYE.");
+                    bytes.AddRange(Encoding.ASCII.GetBytes(DisplayName));
+                    bytes.Add(0x00);
                     break;
 
                 default:

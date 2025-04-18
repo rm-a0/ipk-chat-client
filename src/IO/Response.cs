@@ -7,6 +7,8 @@ namespace Ipk25Chat.IO
         ReplyNok,
         Msg,
         Err,
+        Confirm,
+        Ping,
         Bye
     }
 

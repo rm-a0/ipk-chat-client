@@ -6,5 +6,7 @@ namespace Ipk25Chat.Network
         Task DisconnectAsync();
         Task SendMessageAsync(Command command);
         Task ListenToServerAsync(ChatStateMachine stateMachine, CancellationToken token);
+        int GetTimeout();
+        int GetRetries();
     }
 }

@@ -1,3 +1,5 @@
+using System.Text;
+
 namespace Ipk25Chat.IO
 { 
     public class OutputParser
@@ -96,6 +98,91 @@ namespace Ipk25Chat.IO
             string displayName = parts[1];
 
             return new Response(ResponseType.Bye, displayName);
+        }
+
+        public static Response Parse(byte[] data)
+        {
+            if (data == null || data.Length < 3)
+                return new Response(ResponseType.Unknown, null, "Received empty or malformed UDP message");
+
+            byte type = data[0];
+            try
+            {
+                switch (type)
+                {
+                    case 0x01: // REPLY
+                        if (data.Length < 6) // Type + MessageID + Result + RefMessageID + Content + Null
+                            throw new FormatException("REPLY message too short");
+                        bool isSuccess = data[3] == 1;
+                        string content = ExtractString(data, 6);
+                        ResponseType replyType = isSuccess ? ResponseType.ReplyOk : ResponseType.ReplyNok;
+                        return new Response(replyType, null, content, isSuccess);
+
+                    case 0x04: // MSG
+                        if (data.Length < 4) // Type + MessageID + DisplayName + Null
+                            throw new FormatException("MSG message too short");
+                        string[] fields = ExtractStrings(data, 3, 2);
+                        if (fields.Length != 2)
+                            throw new FormatException("MSG message missing required fields");
+                        return new Response(ResponseType.Msg, fields[0], fields[1]);
+
+                    case 0xFE: // ERR
+                        if (data.Length < 4) // Type + MessageID + DisplayName + Null
+                            throw new FormatException("ERR message too short");
+                        fields = ExtractStrings(data, 3, 2);
+                        if (fields.Length != 2)
+                            throw new FormatException("ERR message missing required fields");
+                        return new Response(ResponseType.Err, fields[0], fields[1]);
+
+                    case 0xFF: // BYE
+                        if (data.Length < 4) // Type + MessageID + DisplayName + Null
+                            throw new FormatException("BYE message too short");
+                        string displayName = ExtractString(data, 3);
+                        if (string.IsNullOrEmpty(displayName))
+                            throw new FormatException("BYE message missing DisplayName");
+                        return new Response(ResponseType.Bye, displayName);
+
+                    case 0xFD: // PING
+                        return new Response(ResponseType.Ping, null, "PING message received");
+
+                    case 0x00: // CONFIRM
+                        return new Response(ResponseType.Confirm, null, "CONFIRM message received");
+
+                    default:
+                        return new Response(ResponseType.Unknown, null, $"Unrecognized UDP message type: 0x{type:X2}");
+                }
+            }
+            catch (Exception ex)
+            {
+                return new Response(ResponseType.Unknown, null, $"Failed to parse UDP message: {ex.Message}");
+            }
+        }
+
+        private static string ExtractString(byte[] data, int startIndex)
+        {
+            int endIndex = startIndex;
+            while (endIndex < data.Length && data[endIndex] != 0)
+                endIndex++;
+            if (endIndex >= data.Length || endIndex == startIndex)
+                throw new FormatException("Invalid string termination in UDP message");
+            return Encoding.ASCII.GetString(data, startIndex, endIndex - startIndex);
+        }
+
+        private static string[] ExtractStrings(byte[] data, int startIndex, int count)
+        {
+            List<string> result = new List<string>();
+            int index = startIndex;
+
+            for (int i = 0; i < count && index < data.Length; i++)
+            {
+                string str = ExtractString(data, index);
+                result.Add(str);
+                index += str.Length + 1;
+            }
+
+            if (result.Count != count)
+                throw new FormatException($"Expected {count} strings, found {result.Count}");
+            return result.ToArray();
         }
     }
 }
