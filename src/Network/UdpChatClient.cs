@@ -8,11 +8,16 @@ namespace Ipk25Chat.Network
     {
         private readonly string _server;
         private readonly int _port;
+        private readonly int _timeout;
+        private readonly int _retries;
         private UdpClient? _client;
         private IPEndPoint? _serverEndPoint;
         private bool _isConnected;
-        private readonly int _timeout;
-        private readonly int _retries;
+        private ushort _nextMessageId;
+        private bool _shouldExit = false;
+        private CancellationTokenSource? _confirmTimeoutCts;
+        private readonly object _pendingLock = new object();
+        private ushort? _pendingMessageId;
 
         public UdpChatClient(string server, int port, int timeout, int retries)
         {
@@ -20,6 +25,7 @@ namespace Ipk25Chat.Network
             _port = port;
             _timeout = timeout;
             _retries = retries;
+            _nextMessageId = 0;
         }
 
         public async Task ConnectAsync()
@@ -27,6 +33,7 @@ namespace Ipk25Chat.Network
             _client = new UdpClient(0);
             _serverEndPoint = new IPEndPoint(IPAddress.Parse(_server), _port);
             _isConnected = true;
+            _confirmTimeoutCts = new CancellationTokenSource();
             Debugger.Log("Connected to UDP endpoint");
         }
 
@@ -50,10 +57,15 @@ namespace Ipk25Chat.Network
                     Debugger.Log($"Raw output received: {BitConverter.ToString(receivedData)} from {result.RemoteEndPoint}");
                     Response response = OutputParser.Parse(receivedData);
 
-                    // handle confirm later
+                    if (response.Type == ResponseType.Confirm) {
+                        if (response.RefMessageId.HasValue)
+                        {
+                        }
+                        continue; // Confirm wont be passed to state machine
+                    }
 
                     _serverEndPoint = remoteEndPoint;
-                    stateMachine.HandleResponse(response);
+                    _ = stateMachine.HandleResponse(response);
                 }
                 catch (OperationCanceledException)
                 {
@@ -99,8 +111,11 @@ namespace Ipk25Chat.Network
                 return;
             }
 
-            byte[] data = command.ToUdpBytes();
-            Debugger.Log($"Sending: {BitConverter.ToString(data)}");
+            byte[] data = command.ToUdpBytes(_nextMessageId);
+            ushort messageId = _nextMessageId;
+            _nextMessageId++;
+
+            Debugger.Log($"Sending: {BitConverter.ToString(data)} (MessageID: {messageId})");
 
             try
             {
@@ -113,7 +128,66 @@ namespace Ipk25Chat.Network
             }
         }
 
-        public int GetTimeout() => _timeout;
-        public int GetRetries() => _retries;
+        private async Task StartConfirmTimeoutAsync(CommandType commandType, byte[] data, ushort messageId)
+        {
+            int attempts = 0;
+            bool confirmed = false;
+
+            while (attempts <= _retries && !confirmed && _isConnected)
+            {
+                try
+                {
+                    if (_client == null || _serverEndPoint == null)
+                    {
+                        throw new InvalidOperationException("Client not initialized");
+                    }
+
+                    await _client.SendAsync(data, data.Length, _serverEndPoint);
+                    Debugger.Log($"Sent command {commandType}, attempt {attempts + 1}/{_retries + 1}, MessageID: {messageId}");
+
+                    try
+                    {
+                        await Task.Delay(_timeout, _confirmTimeoutCts!.Token);
+                        attempts++;
+                        Debugger.Log($"Timeout waiting for CONFIRM for MessageID {messageId}, attempt {attempts}/{_retries}");
+                    }
+                    catch (TaskCanceledException)
+                    {
+                        confirmed = true; // CONFIRM received, timer canceled
+                    }
+                }
+                catch (SocketException ex)
+                {
+                    Debugger.Log($"Failed to send message: {ex.Message}");
+                    lock (_pendingLock)
+                    {
+                        _pendingMessageId = null;
+                    }
+                    Console.WriteLine($"ERROR: Network error sending {commandType}: {ex.Message}");
+                    _isConnected = false;
+                    _shouldExit = true;
+                    await DisconnectAsync();
+                    return;
+                }
+            }
+
+            lock (_pendingLock)
+            {
+                if (_pendingMessageId == messageId)
+                {
+                    _pendingMessageId = null;
+                }
+            }
+
+            if (!confirmed)
+            {
+                Console.WriteLine($"ERROR: No CONFIRM received for {commandType} after {_retries + 1} attempts");
+                _isConnected = false;
+                _shouldExit = true;
+                await DisconnectAsync();
+            }
+        }
+
+        public bool ShouldExit() => _shouldExit;
     }
 }

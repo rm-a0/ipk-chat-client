@@ -21,18 +21,11 @@ namespace Ipk25Chat.Core
         private ClientState _state = ClientState.Start;
         private readonly ChatClient _client;
         private readonly SemaphoreSlim _semaphore = new SemaphoreSlim(1, 1);
-        private CancellationTokenSource _replyTimeoutCts;
         private string _displayName = "";
-        private int _timeout;
-        private int _maxRetries;
-        private int _retries = 0;
 
         public ChatStateMachine(ChatClient client)
         {
             _client = client;
-            _timeout = client.GetTimeout();
-            _maxRetries = client.GetRetries();
-            _replyTimeoutCts = new CancellationTokenSource();
             _ = Task.Run(() => EndStateListenerAsync());
         }
 
@@ -43,11 +36,10 @@ namespace Ipk25Chat.Core
                 await _semaphore.WaitAsync();
                 try
                 {
-                    if (_state == ClientState.End)
+                    if (_state == ClientState.End || _client.ShouldExit())
                     {
+                        _state = ClientState.End;
                         RequestExit?.Invoke(this, EventArgs.Empty);
-                        _replyTimeoutCts.Cancel();
-                        _replyTimeoutCts.Dispose();
                         return;
                     }
                 }
@@ -58,30 +50,6 @@ namespace Ipk25Chat.Core
 
                 await Task.Delay(50);
             }
-        }
-
-        private async Task StartReplyTimeoutAsync(CommandType commandType)
-        {
-            try
-            {
-                Debugger.Log($"Starting {_timeout/1000} second timeout");
-                await Task.Delay(_timeout, _replyTimeoutCts.Token); // 5-second timeout
-                await _semaphore.WaitAsync();
-                try
-                {
-                    if (_state == ClientState.Auth || _state == ClientState.Join)
-                    {
-                        string msg = $"No REPLY received for {commandType} within {_timeout} ms";
-                        Console.WriteLine($"ERROR: {msg}");
-                        await SendErrorByeAsync(msg);
-                    }
-                }
-                finally
-                {
-                    _semaphore.Release();
-                }
-            }
-            catch (TaskCanceledException) {}
         }
 
         private async Task SendErrorByeAsync(string message)
@@ -124,13 +92,6 @@ namespace Ipk25Chat.Core
                 {
                     await _client.SendMessageAsync(command);
                     Debugger.Log($"HandleCommand: Sent command '{command.Type}'");
-
-                    // Start timeout for AUTH or JOIN commands
-                    if (command.Type == CommandType.Auth || command.Type == CommandType.Join)
-                    {
-                        _replyTimeoutCts = new CancellationTokenSource(); // Reset CTS
-                        _ = StartReplyTimeoutAsync(command.Type);
-                    }
                 }
             }
             finally
@@ -265,7 +226,6 @@ namespace Ipk25Chat.Core
             }
             else if (response.Type == ResponseType.ReplyNok || response.Type == ResponseType.ReplyOk)
             {
-                _replyTimeoutCts.Cancel(); // Cancel the timeout
                 if (response.Type == ResponseType.ReplyOk)
                 {
                     _state = ClientState.Open;
@@ -274,7 +234,6 @@ namespace Ipk25Chat.Core
             }
             else if (response.Type == ResponseType.Err || response.Type == ResponseType.Bye)
             {
-                _replyTimeoutCts.Cancel(); // Cancel the timeout
                 _state = ClientState.End;
                 return true;
             }
@@ -307,7 +266,6 @@ namespace Ipk25Chat.Core
         {
             if (response.Type == ResponseType.ReplyOk || response.Type == ResponseType.ReplyNok)
             {
-                _replyTimeoutCts.Cancel(); // Cancel the timeout
                 _state = ClientState.Open;
                 return true;
             }
@@ -317,7 +275,6 @@ namespace Ipk25Chat.Core
             }
             else if (response.Type == ResponseType.Err || response.Type == ResponseType.Bye)
             {
-                _replyTimeoutCts.Cancel(); // Cancel the timeout
                 _state = ClientState.End;
                 return true;
             }

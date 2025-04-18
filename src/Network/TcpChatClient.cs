@@ -1,4 +1,5 @@
 using System.Net.Sockets;
+using System.Reflection.Metadata.Ecma335;
 using System.Text;
 
 namespace Ipk25Chat.Network
@@ -11,14 +12,14 @@ namespace Ipk25Chat.Network
         private NetworkStream? _stream;
         private bool _isConnected;
         private int _timeout;
-        private int _retries;
+        private bool _shouldExit = false;
+        private CancellationTokenSource? _replyTimeoutCts;
 
         public TcpChatClient(string server, int port)
         {
             _server = server;
             _port = port;
             _timeout = 5000;
-            _retries = 0;
         }
 
         public async Task ConnectAsync()
@@ -27,6 +28,7 @@ namespace Ipk25Chat.Network
             await _client.ConnectAsync(_server, _port);
             _stream = _client.GetStream();
             _isConnected = true;
+            _replyTimeoutCts = new CancellationTokenSource();
             Debugger.Log("Connected to TCP server");
         }
 
@@ -34,7 +36,7 @@ namespace Ipk25Chat.Network
         {
         byte[] buffer = new byte[1024];
 
-            while (_isConnected && !token.IsCancellationRequested)
+            while (_isConnected && !token.IsCancellationRequested && (_stream !=null))
             {
                 try
                 {
@@ -50,7 +52,11 @@ namespace Ipk25Chat.Network
                     string output = Encoding.ASCII.GetString(buffer, 0, bytesRead);
                     Debugger.Log($"Raw ouput received: {output}");
                     Response response = OutputParser.Parse(output);
-                    stateMachine.HandleResponse(response);
+
+                    if (response.Type == ResponseType.ReplyNok || response.Type == ResponseType.ReplyOk) {
+                        // turn off timer
+                    }
+                    _ = stateMachine.HandleResponse(response);
                 }
                 catch (OperationCanceledException)
                 {
@@ -96,6 +102,11 @@ namespace Ipk25Chat.Network
                 return;
             }
 
+            if (command.Type == CommandType.Auth || command.Type == CommandType.Join) {
+                _replyTimeoutCts = new CancellationTokenSource();
+                _ = StartReplyTimeoutAsync(command.Type);
+            }
+
             string formattedMessage = command.ToTcpString();
             Debugger.Log($"Sending: {formattedMessage}");
             byte[] data = Encoding.ASCII.GetBytes(formattedMessage + "\r\n");
@@ -103,7 +114,20 @@ namespace Ipk25Chat.Network
             
         }
 
-        public int GetTimeout() => _timeout;
-        public int GetRetries() => _retries;
+        private async Task StartReplyTimeoutAsync(CommandType commandType)
+        {
+            try
+            {
+                Debugger.Log($"Starting {_timeout/1000} second timeout for {commandType}");
+                await Task.Delay(_timeout, _replyTimeoutCts!.Token);
+                Console.WriteLine($"ERROR: No REPLY received for {commandType} within {_timeout} ms");
+                _shouldExit = true;
+                _isConnected = false;
+                await DisconnectAsync();
+            }
+            catch (TaskCanceledException) { }
+        }
+
+        public bool ShouldExit() => _shouldExit;
     }
 }

@@ -18,13 +18,17 @@ namespace Ipk25Chat.IO
         public string? DisplayName { get; }
         public string? Content { get; }
         public bool IsSuccess { get; }
+        public ushort? MessageId { get; }
+        public ushort? RefMessageId { get; }
 
-        public Response(ResponseType type, string? displayName = null, string? content = null, bool isSuccess = false)
+        public Response(ResponseType type, string? displayName = null, string? content = null, bool isSuccess = false, ushort? messageId = null, ushort? refMessageId = null)
         {
             Type = type;
             DisplayName = displayName;
             Content = content;
             IsSuccess = isSuccess;
+            MessageId = messageId;
+            RefMessageId = refMessageId;
         }
 
         public override string ToString()

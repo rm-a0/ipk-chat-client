@@ -91,16 +91,10 @@ namespace Ipk25Chat.IO
             };
         }
 
-        public byte[] ToUdpBytes()
+        public byte[] ToUdpBytes(ushort messageId)
         {
             if (IsLocal || Type == CommandType.Unknown)
                 throw new InvalidOperationException($"{Type} is a local or unknown command and cannot be formatted for UDP.");
-
-            ushort messageId;
-            lock (_messageIdLock)
-            {
-                messageId = _messageId++;
-            }
 
             byte typeByte = Type switch
             {
@@ -114,7 +108,6 @@ namespace Ipk25Chat.IO
 
             List<byte> bytes = new List<byte>();
             bytes.Add(typeByte);
-
             bytes.Add((byte)(messageId >> 8)); // High byte
             bytes.Add((byte)(messageId & 0xFF)); // Low byte
 
