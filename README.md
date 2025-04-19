@@ -20,22 +20,24 @@ Client application for remote server communication using IPK25-CHAT protocol wri
 - [Implementation Details](#implementation-details)
   - [Code Structure](#code-structure)
   - [Key Classes and Namespaces](#key-classes-and-namespaces)
-  - [Simplified Class Diagram](#simplified-class-diagram)
+  - [Class Diagram](#class-diagram)
   - [Activity Diagram](#activity-diagram)
+    - [Activty Diagram TCP](#activity-diagram-tcp)
+    - [Activty Diagram UDP](#activity-diagram-udp)
 
 ## Summary
 This application communicates with a remote server using the `IPK25-CHAT` protocol built on top of TCP/UDP transport protocols.
 Key features:
 - **TCP Support**: Reliable, text-based messaging.
 - **UDP Support**: Binary messaging with confirmation and retransmission.
-- **IPv4 Only**: Per protocol spec, supports IPv4 addressing.
-- **Stateful Operation**: Uses a finite state machine (FSM) for protocol compliance.
+- **IPv4 Only**: Supports only IPv4 addressing.
+- **Stateful Operation**: Uses a finite state machine for protocol compliance.
 - **Flexible CLI**: Configurable via command-line arguments.
 
 ## Requirements
-- .NET SDK 6.0+ (tested with 8.0)
+- .NET SDK 8.0+ (tested with 8.0 and 9.0)
 - IPv4 network access
-- Compatible with Linux
+- Compatible with Linux (tests on WLS, Ubuntu and VM with custom environment)
 
 ## Installation
 1. Clone the repository:
@@ -87,7 +89,7 @@ After execution user can interact with CLI and input different commands
 - Protocols: **TCP** (connection-oriented, reliable) and **UDP** (connectionless, fast).
 
 #### TCP
-- **Connection-Based**: Establishes a session via handshake.
+- **Connection-Based**: Establishes a connection via handshake.
 - **Reliable**: Ensures delivery with retransmission and ordering.
 - **Used Here**: Sends text-based commands (e.g., `AUTH`, `MSG`) terminated with `\r\n`.
 
@@ -99,29 +101,29 @@ After execution user can interact with CLI and input different commands
 ### Implementation Theory
 #### TCP Messaging
 - **Mechanism**:
-  - Utilizes .NET’s `TcpClient` to establish a persistent, stateful connection to the server.
+  - Utilizes .NET’s `TcpClient` to establish connection to the server.
   - Sends text-based messages compliant with the protocol’s ABNF grammar (e.g., `AUTH user AS User USING secret\r\n`).
 - **Reliability**: Relies on TCP’s built-in guarantees for ordered, error-free delivery ([RFC 9293](https://datatracker.ietf.org/doc/html/rfc9293)).
-- **Termination**: Ensures graceful closure without the `RST` flag on receiving `BYE` or user interrupt (e.g., Ctrl+C), per spec requirements.
+- **Termination**: Ensures graceful termination without the `RST` flag on receiving `BYE` or user interrupt (e.g., Ctrl+C), per spec requirements.
 
 #### UDP Messaging
 - **Mechanism**:
-  - Employs `UdpClient` to send binary messages with a 3-byte header (`Type` as `uint8`, `MessageID` as `uint16`) followed by zero-terminated strings.
-  - Implements application-level confirmation with a 250ms timeout and up to 3 retries for unconfirmed messages.
-  - Adapts to dynamic server port changes after the initial `AUTH` message, inspired by TFTP behavior ([RFC 1350](https://datatracker.ietf.org/doc/html/rfc1350)).
+  - Utilizes `UdpClient` to send binary messages with a 3-byte header (`Type` as `uint8`, `MessageID` as `uint16`) followed by zero-terminated strings.
+  - Implements application-level confirmation with a 250ms timeout and up to 3 retries for unconfirmed messages (can be configured).
+
 - **Reliability**:
-  | Issue         | Solution                     | Reference                          |
-  |---------------|------------------------------|------------------------------------|
-  | Packet Loss   | Retransmits after timeout    | Spec: UDP Variant, Solving Transport Issues |
-  | Duplication   | Tracks `MessageID` to ignore duplicates | Spec: Message Header              |
-  | Reordering    | Processes all messages, confirms once | Spec: Solving Transport Issues    |
+  | Issue         | Solution                     |
+  |---------------|------------------------------|
+  | Packet Loss   | Retransmits after timeout    |
+  | Duplication   | Tracks `MessageID` to ignore duplicates| 
+  | Reordering    | Processes all messages, confirms once |
 
 #### State Machine
 - **Mealy FSM**: Drives client behavior with transitions based on server inputs (e.g., `REPLY`) and client outputs (e.g., `AUTH`).
 - **States**: `start`, `auth`, `join`, `open`, `end`.
 - **Key Behaviors**:
   - `AUTH` initiates authentication, expecting a `REPLY` to proceed.
-  - `JOIN` is optional after automatic default channel assignment post-authentication.
+  - `JOIN` is optional after automatic default channel assignment after authentication.
   - `ERR` or `BYE` triggers transition to `end`, followed by graceful connection termination.
 
 #### IPK25-CHAT Protocol
@@ -152,20 +154,56 @@ src/
 ├── ipk25chat-client.csproj   # Project file
 ```
 ### Key Classes and Namespaces
+- **Core**: Contains the core logic of the application.
+  - `ArgumentParser`: Handles parsing of command-line arguments.
+  - `ChatApplication`: Responsible for the main application flow and organization.
+  - `ChatStateMachine`: Manages state transitions for the chat protocol using a finite state machine.
+- **Debug**: Provides debugging support.
+  - `Debugger`: Contains utilities for logging and debugging the application.
+- **IO**: Manages input and output processing.
+  - `Command`: Represents the structure of user commands.
+  - `InputParser`: Converts user input into `Command` objects.
+  - `OutputParser`: Converts server responses into `Response` objects.
+  - `Response`: Defines the structure of server responses.
+- **Network**: Handles network communication.
+  - `ChatClient`: An abstract interface defining client communication methods.
+  - `ClientFactory`: Instantiates the appropriate client (`TcpChatClient` or `UdpChatClient`).
+  - `TcpChatClient`: Implements TCP-based communication with the server.
+  - `UdpChatClient`: Implements UDP-based communication with the server.
 
-### Simplified Class Diagram
+
+### Class Diagram
 The class diagram shows the main system components and how they interact between each other.
 ![class-diagram](doc/class-diagram.jpg)
+> **Note**: Attributes and helper methods were omitted to keep the diagram clear and focused on the key methods and interactions.
 
 ### Activity Diagram
 This activity diagram illustrates parallel processes and concurrent tasks within the system.
 ![activity-diagram](doc/activity-diagram-general.jpg)
 > **Note**: Some system details were omitted to make the diagram easier to understand. It shows the main parallel tasks in a clear, high-level way.
+
 #### Activity Diagram TCP
 The TCP activity diagram illustrates parallel timeout mechanism implemented for TCP variant.
 ![activity-diagram-tcp](doc/activity-diagram-tcp.jpg)
+
 #### Activity Diagram UDP
 The UDP activity diagram illustrates parallel retry and confirm mechanism implemented for UDP variant.
 ![activity-diagram-tcp](doc/activity-diagram-udp.jpg)
 
 > **Note**: These diagrams focus only on the timeout/confirm-retry handling part of the system. FSM signal handling and other potential interruptions were left out to keep it simple and easy to understand.
+
+### Testing
+#### Automated Tests
+For final automatic testing and verification external tests provided by one of the students were used. These tests can be found on their [github](https://github.com/Vlad6422/VUT_IPK_CLIENT_TESTS). Refer to the original documentation in the repository for usage instructions and concrete test implementation.
+The tests verify basic client functionality such as correct CL argument parsing, UDP/TCP command/response formatting, different timeout scenarios and some additional edge cases such as multiple messages in one packet, message reassembling and user input interruption.
+
+##### Test Input
+Chat Application binary.
+##### Test results
+As of 19 April 2025 (latest commit to the test repository was 17.4.2025), 50/55 have passed successfully, confirming the chat client’s reliability.
+
+> **Note** **for clarification:** I am not the author of the external tests and did not contribute to their development. All credit goes to the author of these tests.
+#### Manual Testing
+#### Testing using Netcat
+##### Example 
+#### Testing using Wireshark
