@@ -24,6 +24,15 @@ Client application for remote server communication using IPK25-CHAT protocol wri
   - [Activity Diagram](#activity-diagram)
     - [Activty Diagram TCP](#activity-diagram-tcp)
     - [Activty Diagram UDP](#activity-diagram-udp)
+- [Testing](#testing)
+  - [Manual Testing](#manual-testing)
+    - [Testing using Netcat](#testing-using-netcat)
+      - [TCP Netcat Testing](#tcp-netcat-testing)
+      - [UDP Netcat Testing](#udp-netcat-testing)
+    - [Testing using Wireshark](#testing-using-wireshark)
+  - [Automated Tests](#automated-tests)
+- [Bibliography](#bibliography)
+  
 
 ## Summary
 This application communicates with a remote server using the `IPK25-CHAT` protocol built on top of TCP/UDP transport protocols.
@@ -223,7 +232,7 @@ In first terminal window `nc` command was executed and in the second terminal th
 Bellow is a screenshot with debug logs to demonstrate testing process.
 ![screenshot-01](doc/screenshot-01.png)
 ##### UDP Netcat Testing
-For UDP testing additional setup was required. It was necessary to prepare `.bin` files.
+For UDP testing additional setup was required. It was necessary to prepare `.bin` files and then pipe them into netcat.
 - Message setup
 ```shell
 echo "___Authentication OK_" | xxd >msg0_reply_auth.hex
@@ -270,11 +279,32 @@ lsof -i -n -P | grep ipk25chat
 For final automatic testing and verification, external tests provided by one of the students were used. These tests can be found on their [github](https://github.com/Vlad6422/VUT_IPK_CLIENT_TESTS). Refer to the original documentation in the repository for usage instructions and concrete test implementation.
 The tests verify basic client functionality such as correct CL argument parsing, UDP/TCP command/response formatting, different timeout scenarios and some additional edge cases such as multiple messages in one packet, message reassembling and user input interruption.
 
-##### Test Input
+- **Test input**
 The `ipk25chat-client` binary.
-##### Test results
+- **Test results**
 As of 19 April 2025 (latest commit to the test repository was 17.4.2025), 50/55 have passed successfully.
 
-> **Note** **for clarification:** I am not the author of the external tests and did not contribute to their development. All credit goes to the author of these tests.
+> **Note for clarification:** I am not the author of the external tests and did not contribute to their development. All credit goes to the author of these tests.
 > As mentioned in the original project specification, it is not recommended to use external tests. Despite that, these tests fall under MIT license and
 upon further inspection, the tests correctly verify projects specification and there is no reason to avoid mentioning them in the documentation. The primary testing mainly relied on previously mentioned methods (Netcat and Wirsehark) and these automated tests were used only as a final validation.
+
+### Bibliography
+[RFC791] Postel, J. Internet Protocol [online]. September 1981. [cited 2025-04-19]. DOI: 10.17487/RFC791. Available at: https://datatracker.ietf.org/doc/html/rfc791
+
+[RFC768] Postel, J. User Datagram Protocol [online]. August 1980. [cited 2025-04-19]. DOI: 10.17487/RFC0768. Available at: https://datatracker.ietf.org/doc/html/rfc768
+
+[RFC9293] Allman, M., and Paxson, V. Transmission Control Protocol (TCP) [online]. August 2022. [cited 2025-04-19]. DOI: 10.17487/RFC9293. Available at: https://datatracker.ietf.org/doc/html/rfc9293
+
+[RFC2119] Bradner, S. Key words for use in RFCs to Indicate Requirement Levels [online]. March 1997. [cited 2025-04-19]. DOI: 10.17487/RFC2119. Available at: https://datatracker.ietf.org/doc/html/rfc2119
+
+[RFC5234] Crocker, D., and Overell, G. Augmented BNF for Syntax Specifications: ABNF [online]. January 2008. [cited 2025-04-19]. DOI: 10.17487/RFC5234. Available at: https://datatracker.ietf.org/doc/html/rfc5234
+
+[IPK25-CHAT-SPEC] Faculty of Information Technology, Brno University of Technology. Project Specification – IPK25-CHAT Protocol [online]. [cited 2025-04-19]. Available at: https://git.fit.vutbr.cz/NESFIT/IPK-Projects/src/branch/master/Project_2/README.md
+
+[Wireshark] The Wireshark Foundation. Wireshark Network Protocol Analyzer [online]. [cited 2025-04-19]. Available at: https://www.wireshark.org/
+
+[Netcat] The Nmap Project. Netcat (nc) - TCP/IP Swiss Army Knife [online]. [cited 2025-04-19]. Available at: https://nmap.org/ncat/
+
+[Vlad6422] Vladislav Zavadil. IPK Client Test Suite [online]. April 2025. [cited 2025-04-19]. Available at: https://github.com/Vlad6422/VUT_IPK_CLIENT_TESTS
+
+> **Note** For few parts of this documentation (such as table of contents generation, bibliography formating and source research) generative AI was used. Also for better sentence structuring and grammar checking Overleaf built-in ai-powered tools were utilized (they are not part of generative AI models and only offer context-aware corrections and improvements to enhance writing quality and readability).
