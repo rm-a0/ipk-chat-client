@@ -59,25 +59,26 @@ namespace Ipk25Chat.Core
         private async Task ReadUserInputAsync()
         {
             while (!_cancellationTokenSource.IsCancellationRequested)
-        {
-            var inputTask = Task.Run(() => Console.ReadLine());
-            var completed = await Task.WhenAny(inputTask, Task.Delay(-1, _cancellationTokenSource.Token));
-
-            if (completed == inputTask)
             {
-                string? input = inputTask.Result;
-                if (input == null) {
-                    await ProcessInputAsync("/bye");
+                var inputTask = Task.Run(() => Console.ReadLine());
+                var completed = await Task.WhenAny(inputTask, Task.Delay(-1, _cancellationTokenSource.Token));
+
+                if (completed == inputTask)
+                {
+                    string? input = inputTask.Result;
+                    if (input == null) {
+                        await ProcessInputAsync("/bye");
+                        
+                        break;
+                    }
+                    Debugger.Log($"User input from console: {input}");
+                    await ProcessInputAsync(input);
+                }
+                else
+                {
                     break;
                 }
-                Debugger.Log($"User input from console: {input}");
-                await ProcessInputAsync(input);
             }
-            else
-            {
-                break;
-            }
-        }
         }
 
         private async Task ProcessInputAsync(string input)

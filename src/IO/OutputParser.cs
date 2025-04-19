@@ -145,7 +145,7 @@ namespace Ipk25Chat.IO
                     return new Response(ResponseType.Ping, null, null, false, messageId, null, true);
 
                 default:
-                    return new Response(ResponseType.Unknown, null, $"Unknown UDP message type: 0x{type:X2}", false, messageId);
+                    return new Response(ResponseType.Unknown, null, $"Unknown UDP message type: 0x{type:X2}", false, messageId, null, true);
             }
         }
     }

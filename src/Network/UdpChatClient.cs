@@ -18,6 +18,7 @@ namespace Ipk25Chat.Network
         private readonly object _pendingLock = new object();
         private ushort _nextMessageId;
         private ushort? _pendingMessageId;
+        private readonly HashSet<ushort> _receivedMessageIds = new HashSet<ushort>();
 
         public UdpChatClient(string server, int port, int timeout, int retries)
         {
@@ -72,6 +73,12 @@ namespace Ipk25Chat.Network
                     if (response.MessageId.HasValue && response.ShouldConfirm)
                     {
                         await SendConfirmAsync(response.MessageId.Value);
+                        ushort messageId = response.MessageId.Value;
+                        if (!_receivedMessageIds.Add(messageId))
+                        {
+                            Debugger.Log($"Duplicate MessageID {messageId} received, ignoring.");
+                            continue;
+                        }
                     }
 
                     _ = stateMachine.HandleResponseAsync(response);
