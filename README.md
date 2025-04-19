@@ -193,17 +193,24 @@ The UDP activity diagram illustrates parallel retry and confirm mechanism implem
 > **Note**: These diagrams focus only on the timeout/confirm-retry handling part of the system. FSM signal handling and other potential interruptions were left out to keep it simple and easy to understand.
 
 ### Testing
+#### Manual Testing
+Manual tests were the main method used for testing and validating protocol requirements during development. Tools used for manual testing included Wireshark and Netcat. Wireshark was employed to monitor packets sent/received to/from the server and Netcat was used to verify command/reply formating.
+#### Testing using Netcat
+##### TCP Netcat Testing
+Testing TCP variant with Netcat was straightforward and required no additional setup.
+##### UDP Netcat Testing
+##### Example 
+#### Testing using Wireshark
+
 #### Automated Tests
-For final automatic testing and verification external tests provided by one of the students were used. These tests can be found on their [github](https://github.com/Vlad6422/VUT_IPK_CLIENT_TESTS). Refer to the original documentation in the repository for usage instructions and concrete test implementation.
+For final automatic testing and verification, external tests provided by one of the students were used. These tests can be found on their [github](https://github.com/Vlad6422/VUT_IPK_CLIENT_TESTS). Refer to the original documentation in the repository for usage instructions and concrete test implementation.
 The tests verify basic client functionality such as correct CL argument parsing, UDP/TCP command/response formatting, different timeout scenarios and some additional edge cases such as multiple messages in one packet, message reassembling and user input interruption.
 
 ##### Test Input
-Chat Application binary.
+The `ipk25chat-client` binary.
 ##### Test results
-As of 19 April 2025 (latest commit to the test repository was 17.4.2025), 50/55 have passed successfully, confirming the chat client’s reliability.
+As of 19 April 2025 (latest commit to the test repository was 17.4.2025), 50/55 have passed successfully.
 
 > **Note** **for clarification:** I am not the author of the external tests and did not contribute to their development. All credit goes to the author of these tests.
-#### Manual Testing
-#### Testing using Netcat
-##### Example 
-#### Testing using Wireshark
+> As mentioned in the original project specification, it is not recommended to use external tests. Despite that, these tests fall under MIT license and
+upon further inspection, the tests correctly verify projects specification and there is no reason to avoid mentioning them in the documentation. The primary testing mainly relied on previously mentioned methods (Netcat and Wirsehark) and these automated tests were used only as a final validation.
