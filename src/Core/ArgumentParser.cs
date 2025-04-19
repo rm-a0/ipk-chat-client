@@ -93,6 +93,7 @@ namespace Ipk25Chat.Core
             Console.WriteLine("  -h, --help                Show this help");
         }
 
+        // Source: Grok3 (Entierly generated)
         private string? HostnameToIp(string hostname)
         {
             if (IPAddress.TryParse(hostname, out IPAddress ip) && ip.AddressFamily == AddressFamily.InterNetwork)

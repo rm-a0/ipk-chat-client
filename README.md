@@ -311,3 +311,4 @@ upon further inspection, the tests correctly verify projects specification and t
 [Vlad6422] Vladislav Zavadil. IPK Client Test Suite [online]. April 2025. [cited 2025-04-19]. Available at: https://github.com/Vlad6422/VUT_IPK_CLIENT_TESTS
 
 > **Note** For few parts of this documentation (such as table of contents generation, bibliography formating and source research) generative AI was used. Also for better sentence structuring and grammar checking Overleaf built-in ai-powered tools were utilized (they are not part of generative AI models and only offer context-aware corrections and improvements to enhance writing quality and readability).
+> When it comes to code, AI was used only as an assistant (to help understand concepts like canceltation tokens and built in .NET utilities) and no part of the actual source code (unless stated otherwise in the file) was fully copy-pasted from LLM, either it was heavily adjusted or enteierly rewritten.

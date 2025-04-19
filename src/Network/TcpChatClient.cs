@@ -32,6 +32,7 @@ namespace Ipk25Chat.Network
             Debugger.Log("Connected to TCP server");
         }
 
+        // Source: Grok3 (Generated output was used only as a skeleton)
         public async Task ListenToServerAsync(ChatStateMachine stateMachine, CancellationToken token)
         {
         byte[] buffer = new byte[1024];
@@ -67,11 +68,10 @@ namespace Ipk25Chat.Network
                 catch (OperationCanceledException)
                 {
                     Debugger.Log("Listening to server has been canceled.");
-                    break; // Exit the loop when canceled
+                    break;
                 }
                 catch (Exception ex)
                 {
-                    // Handle any other exception (network errors, etc.)
                     Console.WriteLine($"ERROR: {ex.Message}");
                     break;
                 }

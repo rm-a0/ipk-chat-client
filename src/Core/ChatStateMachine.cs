@@ -136,7 +136,7 @@ namespace Ipk25Chat.Core
                         Debugger.Log("Reached end state, no responses should be received");
                         break;
                 }
-                if (shouldPrintResponse)
+                if (shouldPrintResponse && response.Type != ResponseType.Ping)
                 {
                     Console.WriteLine(response.ToString());
                 }

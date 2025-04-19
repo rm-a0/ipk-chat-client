@@ -38,6 +38,7 @@ namespace Ipk25Chat.Network
             await Task.CompletedTask;
         }
 
+        // Source: Grok3 (Generated output was used only as a skeleton)
         public async Task ListenToServerAsync(ChatStateMachine stateMachine, CancellationToken token)
         {
             if (_client == null || _serverEndPoint == null)

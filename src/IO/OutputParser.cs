@@ -106,7 +106,7 @@ namespace Ipk25Chat.IO
                 throw new ArgumentException("UDP message too short");
 
             byte type = data[0];
-            ushort messageId = (ushort)(data[1] << 8 | data[2]); // Big-endian
+            ushort messageId = (ushort)(data[1] << 8 | data[2]);
 
             switch (type)
             {
@@ -142,7 +142,7 @@ namespace Ipk25Chat.IO
                     return new Response(ResponseType.Bye, displayName, null, false, messageId, null, true);
 
                 case 0xFD: // PING
-                    return new Response(ResponseType.Ping, null, null, false, messageId);
+                    return new Response(ResponseType.Ping, null, null, false, messageId, null, true);
 
                 default:
                     return new Response(ResponseType.Unknown, null, $"Unknown UDP message type: 0x{type:X2}", false, messageId);
