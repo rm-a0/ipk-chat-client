@@ -5,8 +5,8 @@ namespace Ipk25Chat.Core
 {
     public class ArgumentParser
     {
-        public string Protocol { get; private set; }
-        public string Server { get; private set; }
+        public string Protocol { get; private set; } = string.Empty;
+        public string Server { get; private set; } = string.Empty;
         public int Port { get; private set; } = 4567;
         public int UdpTimeout { get; private set; } = 250;
         public int UdpRetries { get; private set; } = 3;
@@ -27,7 +27,7 @@ namespace Ipk25Chat.Core
 
                     case "-s":
                     case "--server":
-                        string? serverIp = HostnameToIp(GetNextArg(args, ref i));
+                        string? serverIp = HostnameToIp(GetNextArg(args, ref i)!);
                         if (string.IsNullOrEmpty(serverIp))
                         {
                             throw new ArgumentException("Invalid IP address or hostname");
@@ -68,7 +68,6 @@ namespace Ipk25Chat.Core
                 }
             }
 
-            // Enforce mandatory arguments as per spec
             if (string.IsNullOrEmpty(Protocol) || string.IsNullOrEmpty(Server))
                 throw new ArgumentException("Mandatory arguments -t (tcp/udp) and -s are required.");
         }
@@ -96,19 +95,28 @@ namespace Ipk25Chat.Core
         // Source: Grok3 (Entierly generated)
         private string? HostnameToIp(string hostname)
         {
-            if (IPAddress.TryParse(hostname, out IPAddress ip) && ip.AddressFamily == AddressFamily.InterNetwork)
+            if (string.IsNullOrEmpty(hostname))
+                return null;
+
+            if (IPAddress.TryParse(hostname, out IPAddress? ip) && ip.AddressFamily == AddressFamily.InterNetwork)
             {
                 return hostname;
             }
-
-            IPAddress[] addresses = Dns.GetHostAddresses(hostname);
-            
-            foreach (IPAddress address in addresses)
+            try
             {
-                if (address.AddressFamily == AddressFamily.InterNetwork)
+                IPAddress[] addresses = Dns.GetHostAddresses(hostname);
+                
+                foreach (IPAddress address in addresses)
                 {
-                    return address.ToString();
+                    if (address.AddressFamily == AddressFamily.InterNetwork)
+                    {
+                        return address.ToString();
+                    }
                 }
+            }
+            catch (SocketException)
+            {
+                return null;
             }
             return null;
         }

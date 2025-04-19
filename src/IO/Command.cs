@@ -21,7 +21,6 @@ namespace Ipk25Chat.IO
         private static readonly Regex PrintablePattern = new Regex(@"^[\x21-\x7E]*$", RegexOptions.Compiled);
         private static readonly Regex ContentPattern = new Regex(@"^[\x0A\x20-\x7E]*$", RegexOptions.Compiled);
 
-        private static ushort _messageId = 0;
         private static readonly object _messageIdLock = new object();
 
         public CommandType Type { get; }
