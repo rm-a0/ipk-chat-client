@@ -274,6 +274,9 @@ lsof -i -n -P | grep ipk25chat
 > **Note:** Netcat Listener for UDP is terminal dependant, meaning that the output will be different (e.g on ZSH (on WSL) '/auht a b c' shows as 'abc' but on XFCE (on Debian) it shows as '........a...b....c'). Some terminals discard unknown characters, some display them as '.' or '?'.
 
 #### Testing using Wireshark
+Wireshark was primarily used to verify the correct number and types of packets transmitted and received. It proved especially usefull for confirming UDP retry and confirm behavior, as well as validating the structure of binary messages. Below are screenshots from Wireshark sessions monitoring packet transmission.
+![wireshark-01](doc/wireshark-01.png)
+![wireshark-02](doc/wireshark-02.png)
 
 #### Automated Tests
 For final automatic testing and verification, external tests provided by one of the students were used. These tests can be found on their [github](https://github.com/Vlad6422/VUT_IPK_CLIENT_TESTS). Refer to the original documentation in the repository for usage instructions and concrete test implementation.
