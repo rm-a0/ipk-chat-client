@@ -194,12 +194,76 @@ The UDP activity diagram illustrates parallel retry and confirm mechanism implem
 
 ### Testing
 #### Manual Testing
-Manual tests were the main method used for testing and validating protocol requirements during development. Tools used for manual testing included Wireshark and Netcat. Wireshark was employed to monitor packets sent/received to/from the server and Netcat was used to verify command/reply formating.
+Manual tests were the main method used for testing and validating protocol requirements during development. Tools used for manual testing included Wireshark and Netcat. Wireshark was employed to monitor packets sent/received to/from the server and Netcat was used to verify correct command/reply formating.
 #### Testing using Netcat
 ##### TCP Netcat Testing
 Testing TCP variant with Netcat was straightforward and required no additional setup.
+In first terminal window `nc` command was executed and in the second terminal the `ipk25chat-client` binary was executed.
+
+- Example input
+
+| Terminal 1: Chat Client                      | Terminal 2: Netcat Listener                |
+|----------------------------------------------|--------------------------------------------|
+| ./ipk25chat-client -t tcp -s localhost       | nc -l -p 4567                              |
+| /auth a b c                                  | REPLY OK IS Joined room                    |
+| /join room                                   | MSG FROM Server IS Hello                   |
+| Hello World                                  |                                            |
+| /bye                                         |                                            | 
+
+- Expected output
+
+| Terminal 1: Chat Client                      | Terminal 2: Netcat Listener                |
+|----------------------------------------------|--------------------------------------------|
+| ./ipk25chat-client -t tcp -s localhost       | nc -l -p 4567                              |
+| Action Success: Joined room                  | AUTH a AS c USING b                        |
+| Server: Hello                                | JOIN room AS c                             |
+|                                              | MSG FROM c IS Hello World                  |
+|                                              | BYE FROM c                                 |
+
+Bellow is a screenshot with debug logs to demonstrate testing process.
+![screenshot-01](doc/screenshot-01.png)
 ##### UDP Netcat Testing
-##### Example 
+For UDP testing additional setup was required. It was necessary to prepare `.bin` files.
+- Message setup
+```shell
+echo "___Authentication OK_" | xxd >msg0_reply_auth.hex
+xxd -r msg0_reply_auth.hex > msg0_reply_auth.bin
+echo "___Joined successfully_" | xxd >msg0_reply_join.hex
+xxd -r msg1_reply_join.hex > msg0_reply_join.bin
+echo "___Alice_Hello there_" | xxd >msg2_msg.hex
+xxd -r msg2_msg.hex > msg2_msg.bin
+```
+- Confirm response setup
+```shell
+echo "000000" | xxd -r -p > confirm0.bin
+echo "000001" | xxd -r -p > confirm1.bin
+echo "000002" | xxd -r -p > confirm2.bin
+```
+Since the application supports dynamic port changing, `lsof` command was used to find the port `ipk25chat` is connected to.
+```shell
+lsof -i -n -P | grep ipk25chat
+```
+
+- Example input
+
+| Terminal 1: Chat Client                                   | Terminal 2: Netcat Listener     | Terminal 3: Netcat Pipe                            | 
+|-----------------------------------------------------------|---------------------------------|----------------------------------------------------|
+| ./ipk25chat-client -t udp -s localhost -d 10000 -r 3 -dbg | lsof -i -n -P \ grep ipk25chat  | nc -4 -u -v 127.0.0.1 {port} < confirm0.bin        |
+| /auth a b c                                               | nc -u 127.0.0.1 {port}          | nc -4 -u -v 127.0.0.1 {port} < msg0_reply_auth.bin |
+| /join channel                                             |                                 | nc -4 -u -v 127.0.0.1 {port} < confirm1.bin        |
+| /bye                                                      |                                 | nc -4 -u -v 127.0.0.1 {port} < msg0_reply_join.bin |
+|                                                           |                                 | nc -4 -u -v 127.0.0.1 {port} < confirm2.bin        |
+
+- Expected output
+
+| Terminal 1: Chat Client                                   | Terminal 2: Netcat Listener     | Terminal 3: Netcat Pipe                            | 
+|-----------------------------------------------------------|---------------------------------|----------------------------------------------------|
+| Action Success: Authentication OK                         |                                 ||
+| Action Success: Joined successfull                        |                                 ||
+| Alice: Hello there                                        |                                 ||
+
+> **Note:** Netcat Listener for UDP is terminal dependant, meaning that the output will be different (e.g on ZSH (on WSL) '/auht a b c' shows as 'abc' but on XFCE (on Debian) it shows as '........a...b....c'). Some terminals discard unknown characters, some display them as '.' or '?'.
+
 #### Testing using Wireshark
 
 #### Automated Tests
