@@ -158,5 +158,14 @@ The class diagram shows the main system components and how they interact between
 ![class-diagram](doc/class-diagram.jpg)
 
 ### Activity Diagram
-The activity diagram illustrates parallel processes and concurrent tasks within the system.
-![activity-diagram](doc/activity-diagram.jpg)
+This activity diagram illustrates parallel processes and concurrent tasks within the system.
+![activity-diagram](doc/activity-diagram-general.jpg)
+> **Note**: Some system details were omitted to make the diagram easier to understand. It shows the main parallel tasks in a clear, high-level way.
+#### Activity Diagram TCP
+The TCP activity diagram illustrates parallel timeout mechanism implemented for TCP variant.
+![activity-diagram-tcp](doc/activity-diagram-tcp.jpg)
+#### Activity Diagram UDP
+The UDP activity diagram illustrates parallel retry and confirm mechanism implemented for UDP variant.
+![activity-diagram-tcp](doc/activity-diagram-udp.jpg)
+
+> **Note**: These diagrams focus only on the timeout/confirm-retry handling part of the system. FSM signal handling and other potential interruptions were left out to keep it simple and easy to understand.
