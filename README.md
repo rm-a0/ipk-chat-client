@@ -249,7 +249,6 @@ Bellow is a table containing structure of all message types supported by TCP var
 #### UDP Message Implementation
 Bellow is a table containing structure of all message types supported by UDP variant.
 
-|
 | Message Type | Type (Hex) | MessageID | Ref_MessageID | Result | Username | DisplayName | Secret | ChannelID | MessageContents |
 |--------------|------------|-----------|---------------|--------|----------|-------------|--------|-----------|-----------------|
 | `CONFIRM`    | 0x00       | (2B)      | (2B)          | –      | –        | –           | –      | –         | –               |
