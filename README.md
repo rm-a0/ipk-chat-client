@@ -21,6 +21,7 @@ Client application for remote server communication using IPK25-CHAT protocol wri
   - [Code Structure](#code-structure)
   - [Key Classes and Namespaces](#key-classes-and-namespaces)
   - [Class Diagram](#class-diagram)
+  - [Finite State Machine]
   - [Activity Diagram](#activity-diagram)
     - [Activty Diagram TCP](#activity-diagram-tcp)
     - [Activty Diagram UDP](#activity-diagram-udp)
@@ -72,6 +73,7 @@ Key features:
 ## How to Use
 When exectuing application user is required/allowed to specify different options
 ### Argument Options
+
 | Argument         | Values                                          | Possible values        | Meaning or expected program behaviour
 | ---------------- | ----------------------------------------------- | ---------------------- | -------------------------------------
 | `-t` `--protocol`|  **User provided**                              | `tcp` or `udp`         | Transport protocol used for connection
@@ -84,12 +86,14 @@ When exectuing application user is required/allowed to specify different options
 
 ### Command Options
 After execution user can interact with CLI and input different commands
+
 | Command     | Parameters                              | Client behaviour
 | ----------- | --------------------------------------- | ----------------
 | `/auth`     | `{Username}`&nbsp;`{Secret}`&nbsp;`{DisplayName}` | Sends `AUTH` message with the data provided from the command to the server (and correctly handles the `Reply` message), locally sets the `DisplayName` value (same as the `/rename` command)
 | `/join`     | `{ChannelID}`                           | Sends `JOIN` message with channel name from the command to the server (and correctly handles the `Reply` message)
 | `/rename`   | `{DisplayName}`                         | Locally changes the display name of the user to be sent with new messages/selected commands
 | `/help`     |                                         | Prints out supported local commands with their parameters and a description
+
 ## Theory
 ### General Theory
 #### L4 (Transport Layer)
@@ -186,6 +190,21 @@ The class diagram shows the main system components and how they interact between
 ![class-diagram](doc/class-diagram.jpg)
 > **Note**: Attributes and helper methods were omitted to keep the diagram clear and focused on the key methods and interactions.
 
+### Finite State Machine
+The finite state machine describes the client's behavior and state transitions based on the input/output sent/received. Protocol specific messages (e.g., Ping or Confirm) need to be handled by specific `ChatClient` implementations. This design promotes extensibility and makes the application easier to expand when supporting additional client types built on top of `IPK25-CHAT` protocol. 
+
+- **Blue Values** - client-sent messages (Command)
+- **Red Values** - server-sent messages (Response)
+
+| Symbol | Meaning                |
+|--------|------------------------|
+| `_`    | No message             |  
+| `*`    | All possible messages  |
+| `!`    | Negative message       |
+
+![finite-state-machine](doc/finite-state-machine.png)
+>**Note**: The FSM implemented is identical to the one provided in the original project specification, therefore, the original image is used.
+
 ### Activity Diagram
 This activity diagram illustrates parallel processes and concurrent tasks within the system.
 ![activity-diagram](doc/activity-diagram-general.jpg)
@@ -199,7 +218,49 @@ The TCP activity diagram illustrates parallel timeout mechanism implemented for 
 The UDP activity diagram illustrates parallel retry and confirm mechanism implemented for UDP variant.
 ![activity-diagram-tcp](doc/activity-diagram-udp.jpg)
 
-> **Note**: These diagrams focus only on the timeout/confirm-retry handling part of the system. FSM signal handling and other potential interruptions were left out to keep it simple and easy to understand.
+> **Note**: These diagrams focus only on the timeout/confirm-retry handling part of the system. FSM signal handling and other potential interruptions were left out to keep it simple and easy to understand. If you are not familiar with Activity Diagrams containing Forks refer to the [UML Activity Diagram documentation](https://www.uml-diagrams.org/activity-diagrams-controls.html).
+
+### Supported Message Types
+The application currently supports the following message types. 
+
+| Type Name | Direction         | Description                                                |
+|-----------|-------------------|------------------------------------------------------------|
+| `AUTH`    | Client → Server   | Authenticates a user using a username and password.        |
+| `JOIN`    | Client → Server   | Requests to join a specific chat channel.                  |
+| `REPLY`   | Server → Client   | Provides a response to a `Join` or `Auth` requests.        |
+| `ERR`     | Bidirectional     | Indicates an error and triggers graceful termination.      |
+| `MSG`     | Bidirectional     | Sends a chat message to a joined channel.                  |
+| `BYE`     | Bidirectional     | Terminates the connection.                                 |
+| `CONFIRM` | Bidirectional     | Confirms successful delivery (UDP only).       |
+| `PING`    | Server → Client   | Aliveness check sent periodically (UDP only).              |
+
+#### TCP Message Implementation
+Bellow is a table containing structure of all message types supported by TCP variant.
+
+| Message type | Message parameter template|
+| ------------ | --------------------------
+| `ERR`        | `ERR FROM {DisplayName} IS {MessageContent}\r\n`
+| `REPLY`      | `REPLY {"OK"\|"NOK"} IS {MessageContent}\r\n`
+| `AUTH`       | `AUTH {Username} AS {DisplayName} USING {Secret}\r\n`
+| `JOIN`       | `JOIN {ChannelID} AS {DisplayName}\r\n`
+| `MSG`        | `MSG FROM {DisplayName} IS {MessageContent}\r\n`
+| `BYE`        | `BYE FROM {DisplayName}\r\n`
+
+#### UDP Message Implementation
+Bellow is a table containing structure of all message types supported by UDP variant.
+
+|
+| Message Type | Type (Hex) | MessageID | Ref_MessageID | Result | Username | DisplayName | Secret | ChannelID | MessageContents |
+|--------------|------------|-----------|---------------|--------|----------|-------------|--------|-----------|-----------------|
+| `CONFIRM`    | 0x00       | (2B)      | (2B)          | –      | –        | –           | –      | –         | –               |
+| `REPLY`      | 0x01       | (2B)      | (2B)          | (1B)   | –        | –           | –      | –         | (string\0)      |
+| `AUTH`       | 0x02       | (2B)      | –             | –      | (string\0) | (string\0)  | (string\0) | –         | –               |
+| `JOIN`       | 0x03       | (2B)      | –             | –      | –        | (string\0)  | –      | (string\0) | –               |
+| `MSG`        | 0x04       | (2B)      | –             | –      | –        | (string\0)  | –      | –         | (string\0)      |
+| `PING`       | 0xFD       | (2B)      | –             | –      | –        | –           | –      | –         | –               |
+| `ERR`        | 0xFE       | (2B)      | –             | –      | –        | (string\0)  | –      | –         | (string\0)      |
+| `BYE`        | 0xFF       | (2B)      | –             | –      | –        | (string\0)  | –      | –         | –               |
+
 
 ### Testing
 #### Manual Testing
@@ -282,9 +343,9 @@ Wireshark was primarily used to verify the correct number and types of packets t
 For final automatic testing and verification, external tests provided by one of the students were used. These tests can be found on their [github](https://github.com/Vlad6422/VUT_IPK_CLIENT_TESTS). Refer to the original documentation in the repository for usage instructions and concrete test implementation.
 The tests verify basic client functionality such as correct CL argument parsing, UDP/TCP command/response formatting, different timeout scenarios and some additional edge cases such as multiple messages in one packet, message reassembling and user input interruption.
 
-- **Test input**
+- **Test input:**
 The `ipk25chat-client` binary.
-- **Test results**
+- **Test results:**
 As of 19 April 2025 (latest commit to the test repository was 17.4.2025), 50/55 have passed successfully.
 
 > **Note for clarification:** I am not the author of the external tests and did not contribute to their development. All credit goes to the author of these tests.
@@ -304,9 +365,9 @@ upon further inspection, the tests correctly verify projects specification and t
 
 [IPK25-CHAT-SPEC] Faculty of Information Technology, Brno University of Technology. Project Specification – IPK25-CHAT Protocol [online]. [cited 2025-04-19]. Available at: https://git.fit.vutbr.cz/NESFIT/IPK-Projects/src/branch/master/Project_2/README.md
 
-[Wireshark] The Wireshark Foundation. Wireshark Network Protocol Analyzer [online]. [cited 2025-04-19]. Available at: https://www.wireshark.org/
+[Wireshark] The Wireshark Foundation. Wireshark Network Protocol Analyzer [online]. Available at: https://www.wireshark.org/
 
-[Netcat] The Nmap Project. Netcat (nc) - TCP/IP Swiss Army Knife [online]. [cited 2025-04-19]. Available at: https://nmap.org/ncat/
+[Netcat] The Nmap Project. Netcat (nc) - TCP/IP Swiss Army Knife [online]. Available at: https://nmap.org/ncat/
 
 [Vlad6422] Vladislav Zavadil. IPK Client Test Suite [online]. April 2025. [cited 2025-04-19]. Available at: https://github.com/Vlad6422/VUT_IPK_CLIENT_TESTS
 
