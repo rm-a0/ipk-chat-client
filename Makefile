@@ -6,7 +6,7 @@ OUTPUT_DIR = .
 CONFIGURATION = Release
 TARGET_RUNTIME = linux-x64
 
-.PHONY: all clean publish run
+.PHONY: all clean publish zip run
 
 all: publish
 
@@ -25,6 +25,10 @@ publish:
 clean:
 	@echo "Cleaning build artifacts..."
 	rm -rf $(PROJECT_NAME) $(SRC_DIR)/bin $(SRC_DIR)/obj
+
+zip:
+	@echo "Compressing all tracked git content into a zip..."
+	@git ls-files | xargs zip -r xrepcim00.zip
 
 run: publish
 	@echo "Running application..."

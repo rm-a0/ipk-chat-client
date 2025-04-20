@@ -6,7 +6,7 @@ namespace Ipk25Chat.Debug
 
         public static void Enable(bool enable)
         {
-            _isEnabeled = true;
+            _isEnabeled = enable;
         }
 
         public static void Log(string message)

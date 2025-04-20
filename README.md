@@ -348,7 +348,7 @@ The tests verify basic client functionality such as correct CL argument parsing,
 - **Test input:**
 The `ipk25chat-client` binary.
 - **Test results:**
-As of 19 April 2025 (latest commit to the test repository was 17.4.2025), 50/55 have passed successfully.
+As of 19 April 2025 (latest commit to the test repository was 17.4.2025), 51/55 have passed successfully.
 
 > **Note for clarification:** I am not the author of the external tests and did not contribute to their development. All credit goes to the author of these tests.
 > As mentioned in the original project specification, it is not recommended to use external tests. Despite that, these tests fall under MIT license and
